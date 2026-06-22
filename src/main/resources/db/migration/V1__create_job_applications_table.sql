@@ -1,0 +1,11 @@
+CREATE TABLE job_applications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    company_name VARCHAR(255) NOT NULL,
+    job_title VARCHAR(255) NOT NULL,
+    job_url VARCHAR(2048),
+    status VARCHAR(50) NOT NULL DEFAULT 'APPLIED',
+    applied_date DATE,
+    location VARCHAR(255),
+    salary_range VARCHAR(255),
+    notes TEXT
+);

@@ -1,0 +1,12 @@
+jwt:
+  secret: my-super-secret-key-that-is-at-least-32-characters-long
+  expiration: 86400000
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/jobtracker
+    username: root
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
