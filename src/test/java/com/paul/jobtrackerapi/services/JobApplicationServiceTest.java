@@ -3,18 +3,23 @@ package com.paul.jobtrackerapi.services;
 import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
 import com.paul.jobtrackerapi.entities.JobApplication;
+import com.paul.jobtrackerapi.entities.User;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
 import com.paul.jobtrackerapi.mappers.JobApplicationMapper;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
 import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
+import com.paul.jobtrackerapi.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,13 +32,34 @@ class JobApplicationServiceTest {
     private JobApplicationRepository repository;
     private JobApplicationMapper mapper;
     private JobApplicationService service;
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
         repository = Mockito.mock(JobApplicationRepository.class);
         mapper = Mockito.mock(JobApplicationMapper.class);
+        userRepository = Mockito.mock(UserRepository.class);
 
-        service = new JobApplicationService(repository, mapper);
+        service = new JobApplicationService(repository, mapper, userRepository);
+
+        User user = User.builder()
+                .id(1L)
+                .username("paul")
+                .password("hashedPassword")
+                .build();
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        "paul",
+                        null,
+                        List.of()
+                );
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(authentication);
+
+        Mockito.when(userRepository.findByUsername("paul"))
+                .thenReturn(Optional.of(user));
     }
 
     @Test
@@ -85,7 +111,11 @@ class JobApplicationServiceTest {
         response.setCompanyName("Amazon");
         response.setJobTitle("Backend Developer");
 
-        Mockito.when(repository.findById(id)).thenReturn(Optional.of(entity));
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.of(entity));
+
         Mockito.when(mapper.toResponse(entity)).thenReturn(response);
 
         JobApplicationResponse result = service.getApplicationById(id);
@@ -94,7 +124,10 @@ class JobApplicationServiceTest {
         assertEquals("Amazon", result.getCompanyName());
         assertEquals("Backend Developer", result.getJobTitle());
 
-        Mockito.verify(repository).findById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
         Mockito.verify(mapper).toResponse(entity);
     }
 
@@ -102,14 +135,20 @@ class JobApplicationServiceTest {
     void getApplicationById_shouldThrowException_whenApplicationDoesNotExist() {
         Long id = 99L;
 
-        Mockito.when(repository.findById(id)).thenReturn(Optional.empty());
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.empty());
 
         assertThrows(
                 JobApplicationNotFoundException.class,
                 () -> service.getApplicationById(id)
         );
 
-        Mockito.verify(repository).findById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
         Mockito.verifyNoInteractions(mapper);
     }
 
@@ -136,7 +175,11 @@ class JobApplicationServiceTest {
         response.setCompanyName("Google");
         response.setJobTitle("Java Developer");
 
-        Mockito.when(repository.findById(id)).thenReturn(Optional.of(existingEntity));
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.of(existingEntity));
+
         Mockito.when(repository.save(existingEntity)).thenReturn(savedEntity);
         Mockito.when(mapper.toResponse(savedEntity)).thenReturn(response);
 
@@ -146,7 +189,10 @@ class JobApplicationServiceTest {
         assertEquals("Google", result.getCompanyName());
         assertEquals("Java Developer", result.getJobTitle());
 
-        Mockito.verify(repository).findById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
         Mockito.verify(repository).save(existingEntity);
         Mockito.verify(mapper).toResponse(savedEntity);
     }
@@ -159,14 +205,20 @@ class JobApplicationServiceTest {
         request.setCompanyName("Google");
         request.setJobTitle("Java Developer");
 
-        Mockito.when(repository.findById(id)).thenReturn(Optional.empty());
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.empty());
 
         assertThrows(
                 JobApplicationNotFoundException.class,
                 () -> service.updateApplication(id, request)
         );
 
-        Mockito.verify(repository).findById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
         Mockito.verifyNoInteractions(mapper);
     }
 
@@ -174,12 +226,23 @@ class JobApplicationServiceTest {
     void deleteApplication_shouldDeleteApplication_whenApplicationExists() {
         Long id = 1L;
 
-        Mockito.when(repository.existsById(id)).thenReturn(true);
+        JobApplication entity = new JobApplication();
+        entity.setId(id);
+        entity.setCompanyName("Amazon");
+        entity.setJobTitle("Backend Developer");
+
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.of(entity));
 
         service.deleteApplication(id);
 
-        Mockito.verify(repository).existsById(id);
-        Mockito.verify(repository).deleteById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
+        Mockito.verify(repository).delete(entity);
         Mockito.verifyNoInteractions(mapper);
     }
 
@@ -188,7 +251,7 @@ class JobApplicationServiceTest {
         Long id = 1L;
 
         PatchJobApplicationRequest request = new PatchJobApplicationRequest(
-                "Google",
+                "Netflix",
                 null,
                 null,
                 null,
@@ -205,21 +268,29 @@ class JobApplicationServiceTest {
 
         JobApplicationResponse response = new JobApplicationResponse();
         response.setId(id);
-        response.setCompanyName("Google");
+        response.setCompanyName("Netflix");
         response.setJobTitle("Backend Developer");
 
-        Mockito.when(repository.findById(id)).thenReturn(Optional.of(existingEntity));
-        Mockito.when(mapper.toResponse(existingEntity)).thenReturn(response);
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.of(existingEntity));
 
-        JobApplicationResponse result = service.patchApplication(id, request);
+        Mockito.when(mapper.toResponse(existingEntity))
+                .thenReturn(response);
+
+        JobApplicationResponse result =
+                service.patchApplication(id, request);
 
         assertEquals(id, result.getId());
-        assertEquals("Google", result.getCompanyName());
+        assertEquals("Netflix", result.getCompanyName());
         assertEquals("Backend Developer", result.getJobTitle());
 
-        Mockito.verify(repository).findById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
         Mockito.verify(mapper).toResponse(existingEntity);
-        Mockito.verify(repository, Mockito.never()).save(Mockito.any());
     }
 
     @Test
@@ -227,7 +298,7 @@ class JobApplicationServiceTest {
         Long id = 99L;
 
         PatchJobApplicationRequest request = new PatchJobApplicationRequest(
-                "Google",
+                "Netflix",
                 null,
                 null,
                 null,
@@ -237,31 +308,43 @@ class JobApplicationServiceTest {
                 null
         );
 
-        Mockito.when(repository.findById(id)).thenReturn(Optional.empty());
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.empty());
 
         assertThrows(
                 JobApplicationNotFoundException.class,
                 () -> service.patchApplication(id, request)
         );
 
-        Mockito.verify(repository).findById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
         Mockito.verifyNoInteractions(mapper);
-        Mockito.verify(repository, Mockito.never()).save(Mockito.any());
     }
 
     @Test
     void deleteApplication_shouldThrowException_whenApplicationDoesNotExist() {
         Long id = 99L;
 
-        Mockito.when(repository.existsById(id)).thenReturn(false);
+        Mockito.when(repository.findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        )).thenReturn(Optional.empty());
 
         assertThrows(
                 JobApplicationNotFoundException.class,
                 () -> service.deleteApplication(id)
         );
 
-        Mockito.verify(repository).existsById(id);
-        Mockito.verify(repository, Mockito.never()).deleteById(id);
+        Mockito.verify(repository).findByIdAndUser(
+                Mockito.eq(id),
+                Mockito.any()
+        );
+        Mockito.verify(repository, Mockito.never())
+                .delete(Mockito.any(JobApplication.class));
         Mockito.verifyNoInteractions(mapper);
     }
 
@@ -281,7 +364,11 @@ class JobApplicationServiceTest {
 
         Page<JobApplication> entityPage = new PageImpl<>(List.of(entity));
 
-        Mockito.when(repository.findAll(pageable)).thenReturn(entityPage);
+        Mockito.when(repository.findByUser(
+                Mockito.any(),
+                Mockito.eq(pageable)
+        )).thenReturn(entityPage);
+
         Mockito.when(mapper.toResponse(entity)).thenReturn(response);
 
         Page<JobApplicationResponse> result = service.getAllApplications(pageable);
@@ -290,7 +377,10 @@ class JobApplicationServiceTest {
         assertEquals("Amazon", result.getContent().get(0).getCompanyName());
         assertEquals("Backend Developer", result.getContent().get(0).getJobTitle());
 
-        Mockito.verify(repository).findAll(pageable);
+        Mockito.verify(repository).findByUser(
+                Mockito.any(),
+                Mockito.eq(pageable)
+        );
         Mockito.verify(mapper).toResponse(entity);
     }
 

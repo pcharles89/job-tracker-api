@@ -5,12 +5,16 @@ import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
 import com.paul.jobtrackerapi.entities.JobApplication;
+import com.paul.jobtrackerapi.entities.User;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
+import com.paul.jobtrackerapi.repositories.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
 @ActiveProfiles("test")
+@WithMockUser(username = "paul")
 public class JobApplicationIntegrationTest {
 
     @Autowired
@@ -31,7 +36,23 @@ public class JobApplicationIntegrationTest {
     @Autowired
     private JobApplicationRepository repository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private User testUser;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setUp() {
+        repository.deleteAll();
+        userRepository.deleteAll();
+
+        testUser = new User();
+        testUser.setUsername("paul");
+        testUser.setPassword("password");
+        testUser = userRepository.save(testUser);
+    }
 
     @Test
     void createApplication_shouldSaveAndReturnApplication() throws Exception {
@@ -80,6 +101,7 @@ public class JobApplicationIntegrationTest {
         application.setCompanyName("Amazon");
         application.setJobTitle("Backend Developer");
         application.setLocation("New York");
+        application.setUser(testUser);
 
         JobApplication savedApplication = repository.save(application);
 
@@ -110,6 +132,7 @@ public class JobApplicationIntegrationTest {
         application.setCompanyName("Amazon");
         application.setJobTitle("Backend Developer");
         application.setLocation("New York");
+        application.setUser(testUser);
 
         JobApplication savedApplication =
                 repository.save(application);
@@ -168,6 +191,7 @@ public class JobApplicationIntegrationTest {
         application.setCompanyName("Amazon");
         application.setJobTitle("Backend Developer");
         application.setLocation("New York");
+        application.setUser(testUser);
 
         JobApplication savedApplication =
                 repository.save(application);
@@ -235,6 +259,7 @@ public class JobApplicationIntegrationTest {
         application.setCompanyName("Amazon");
         application.setJobTitle("Backend Developer");
         application.setLocation("New York");
+        application.setUser(testUser);
 
         JobApplication savedApplication =
                 repository.save(application);
@@ -261,11 +286,13 @@ public class JobApplicationIntegrationTest {
         unique.setCompanyName("UniqueTestCompanyXYZ");
         unique.setJobTitle("Backend Developer");
         unique.setLocation("New York");
+        unique.setUser(testUser);
 
         JobApplication other = new JobApplication();
         other.setCompanyName("OtherTestCompanyXYZ");
         other.setJobTitle("Software Engineer");
         other.setLocation("California");
+        other.setUser(testUser);
 
         repository.save(unique);
         repository.save(other);
@@ -287,6 +314,7 @@ public class JobApplicationIntegrationTest {
         application.setCompanyName("UniqueExistingCompanyXYZ");
         application.setJobTitle("Backend Developer");
         application.setLocation("New York");
+        application.setUser(testUser);
 
         repository.save(application);
 
@@ -307,6 +335,7 @@ public class JobApplicationIntegrationTest {
         application.setCompanyName("UniqueListCompanyXYZ");
         application.setJobTitle("Backend Developer");
         application.setLocation("New York");
+        application.setUser(testUser);
 
         repository.save(application);
 

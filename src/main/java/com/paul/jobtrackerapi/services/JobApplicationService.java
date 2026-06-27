@@ -6,13 +6,17 @@ import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.entities.JobApplication;
+import com.paul.jobtrackerapi.entities.User;
+import com.paul.jobtrackerapi.exceptions.InvalidCredentialsException;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
 import com.paul.jobtrackerapi.mappers.JobApplicationMapper;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
+import com.paul.jobtrackerapi.repositories.UserRepository;
 import com.paul.jobtrackerapi.specifications.JobApplicationSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,30 +25,50 @@ public class JobApplicationService {
 
     private final JobApplicationRepository repository;
     private final JobApplicationMapper mapper;
+    private final UserRepository userRepository;
 
     public JobApplicationService(JobApplicationRepository repository,
-                                 JobApplicationMapper mapper) {
+                                 JobApplicationMapper mapper, UserRepository userRepository) {
         this.repository = repository;
         this.mapper = mapper;
+        this.userRepository = userRepository;
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new InvalidCredentialsException(
+                        "Authenticated user not found"
+                ));
     }
 
     @Transactional
     public JobApplicationResponse createApplication(CreateJobApplicationRequest request) {
-        JobApplication jobApplication = mapper.toEntity(request);
-        JobApplication savedApplication = repository.save(jobApplication);
+        User currentUser = getCurrentUser();
 
+        JobApplication jobApplication = mapper.toEntity(request);
+        jobApplication.setUser(currentUser);
+
+        JobApplication savedApplication = repository.save(jobApplication);
         return mapper.toResponse(savedApplication);
     }
 
     @Transactional(readOnly = true)
     public Page<JobApplicationResponse> getAllApplications(Pageable pageable) {
-        return repository.findAll(pageable)
-                .map(mapper::toResponse);
+        User currentUser = getCurrentUser();
+
+        return repository.findByUser(currentUser, pageable).map(mapper::toResponse);
     }
 
     @Transactional(readOnly = true)
     public JobApplicationResponse getApplicationById(Long id) {
-        JobApplication jobApplication = repository.findById(id)
+        User currentUser = getCurrentUser();
+
+        JobApplication jobApplication = repository.findByIdAndUser(id, currentUser)
                 .orElseThrow(() -> new JobApplicationNotFoundException(id));
 
         return mapper.toResponse(jobApplication);
@@ -52,7 +76,9 @@ public class JobApplicationService {
 
     @Transactional
     public JobApplicationResponse updateApplication(Long id, UpdateJobApplicationRequest request) {
-        JobApplication existingApplication = repository.findById(id)
+        User currentUser = getCurrentUser();
+
+        JobApplication existingApplication = repository.findByIdAndUser(id, currentUser)
                 .orElseThrow(() -> new JobApplicationNotFoundException(id));
 
         existingApplication.setCompanyName(request.getCompanyName());
@@ -71,10 +97,12 @@ public class JobApplicationService {
 
     @Transactional
     public void deleteApplication(Long id) {
-        if(!repository.existsById(id)) {
-            throw new JobApplicationNotFoundException(id);
-        }
-        repository.deleteById(id);
+        User currentUser = getCurrentUser();
+
+        JobApplication application = repository.findByIdAndUser(id, currentUser)
+                .orElseThrow(() -> new JobApplicationNotFoundException(id));
+
+        repository.delete(application);
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +139,9 @@ public class JobApplicationService {
 
     @Transactional
     public JobApplicationResponse patchApplication(Long id, PatchJobApplicationRequest request) {
-        JobApplication application = repository.findById(id)
+        User currentUser = getCurrentUser();
+
+        JobApplication application = repository.findByIdAndUser(id, currentUser)
                 .orElseThrow(() -> new JobApplicationNotFoundException(id));
 
         if (request.companyName() != null) {
