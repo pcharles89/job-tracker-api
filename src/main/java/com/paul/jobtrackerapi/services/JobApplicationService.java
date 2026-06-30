@@ -113,7 +113,9 @@ public class JobApplicationService {
             Pageable pageable
     ) {
 
-        Specification<JobApplication> spec = Specification.unrestricted();
+        User currentUser = getCurrentUser();
+
+        Specification<JobApplication> spec = JobApplicationSpecification.hasUser(currentUser);
 
         if (companyName != null) {
             spec = spec.and(

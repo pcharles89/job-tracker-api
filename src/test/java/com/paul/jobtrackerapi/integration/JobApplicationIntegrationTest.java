@@ -344,4 +344,182 @@ public class JobApplicationIntegrationTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].companyName").exists());
     }
+
+    @Test
+    void getApplicationById_shouldReturnNotFound_whenApplicationBelongsToAnotherUser() throws Exception {
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication application = new JobApplication();
+        application.setCompanyName("Alice Company");
+        application.setJobTitle("Backend Developer");
+        application.setLocation("New York");
+        application.setUser(otherUser);
+
+        JobApplication savedApplication = repository.save(application);
+
+        mockMvc.perform(get("/applications/{id}", savedApplication.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("Job application with id " + savedApplication.getId() + " not found"))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+
+    @Test
+    void updateApplication_shouldReturnNotFound_whenApplicationBelongsToAnotherUser() throws Exception {
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication application = new JobApplication();
+        application.setCompanyName("Alice Company");
+        application.setJobTitle("Backend Developer");
+        application.setLocation("New York");
+        application.setUser(otherUser);
+
+        JobApplication savedApplication = repository.save(application);
+
+        UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
+        request.setCompanyName("Hacked Company");
+        request.setJobTitle("Hacked Title");
+        request.setLocation("California");
+
+        mockMvc.perform(
+                        put("/applications/{id}", savedApplication.getId())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("Job application with id " + savedApplication.getId() + " not found"))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+
+    @Test
+    void deleteApplication_shouldReturnNotFound_whenApplicationBelongsToAnotherUser() throws Exception {
+
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication application = new JobApplication();
+        application.setCompanyName("Alice Company");
+        application.setJobTitle("Backend Developer");
+        application.setLocation("New York");
+        application.setUser(otherUser);
+
+        JobApplication savedApplication = repository.save(application);
+
+        mockMvc.perform(delete("/applications/{id}", savedApplication.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("Job application with id " + savedApplication.getId() + " not found"))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+
+    @Test
+    void patchApplication_shouldReturnNotFound_whenApplicationBelongsToAnotherUser() throws Exception {
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication application = new JobApplication();
+        application.setCompanyName("Alice Company");
+        application.setJobTitle("Backend Developer");
+        application.setLocation("New York");
+        application.setUser(otherUser);
+
+        JobApplication savedApplication = repository.save(application);
+
+        PatchJobApplicationRequest request =
+                new PatchJobApplicationRequest(
+                        "Hacked Company",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+
+        mockMvc.perform(
+                        patch("/applications/{id}", savedApplication.getId())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("Job application with id " + savedApplication.getId() + " not found"))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+
+    @Test
+    void getAllApplications_shouldOnlyReturnCurrentUsersApplications() throws Exception {
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication paulApplication = new JobApplication();
+        paulApplication.setCompanyName("Paul Company");
+        paulApplication.setJobTitle("Backend Developer");
+        paulApplication.setLocation("New York");
+        paulApplication.setUser(testUser);
+
+        JobApplication aliceApplication = new JobApplication();
+        aliceApplication.setCompanyName("Alice Company");
+        aliceApplication.setJobTitle("Frontend Developer");
+        aliceApplication.setLocation("California");
+        aliceApplication.setUser(otherUser);
+
+        repository.save(paulApplication);
+        repository.save(aliceApplication);
+
+        mockMvc.perform(get("/applications"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].companyName").value("Paul Company"));
+    }
+
+    @Test
+    void searchApplications_shouldOnlyReturnCurrentUsersApplications() throws Exception {
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication paulApplication = new JobApplication();
+        paulApplication.setCompanyName("SharedCompanyName");
+        paulApplication.setJobTitle("Backend Developer");
+        paulApplication.setLocation("New York");
+        paulApplication.setUser(testUser);
+
+        JobApplication aliceApplication = new JobApplication();
+        aliceApplication.setCompanyName("SharedCompanyName");
+        aliceApplication.setJobTitle("Frontend Developer");
+        aliceApplication.setLocation("California");
+        aliceApplication.setUser(otherUser);
+
+        repository.save(paulApplication);
+        repository.save(aliceApplication);
+
+        mockMvc.perform(
+                        get("/applications/search")
+                                .param("companyName", "SharedCompanyName")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].companyName").value("SharedCompanyName"))
+                .andExpect(jsonPath("$.content[0].jobTitle").value("Backend Developer"));
+    }
 }
