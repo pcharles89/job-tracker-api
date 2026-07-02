@@ -522,4 +522,145 @@ public class JobApplicationIntegrationTest {
                 .andExpect(jsonPath("$.content[0].companyName").value("SharedCompanyName"))
                 .andExpect(jsonPath("$.content[0].jobTitle").value("Backend Developer"));
     }
+
+    @Test
+    void getAllApplications_shouldReturnApplicationsSortedByCompanyNameAscending() throws Exception {
+        JobApplication paulApplication = new JobApplication();
+        paulApplication.setCompanyName("Amazon");
+        paulApplication.setJobTitle("Backend Developer");
+        paulApplication.setLocation("New York");
+        paulApplication.setUser(testUser);
+
+        JobApplication paulApplication2 = new JobApplication();
+        paulApplication2.setCompanyName("Google");
+        paulApplication2.setJobTitle("Backend Developer");
+        paulApplication2.setLocation("New York");
+        paulApplication2.setUser(testUser);
+
+        JobApplication paulApplication3 = new JobApplication();
+        paulApplication3.setCompanyName("Microsoft");
+        paulApplication3.setJobTitle("Backend Developer");
+        paulApplication3.setLocation("New York");
+        paulApplication3.setUser(testUser);
+
+        repository.save(paulApplication2);
+        repository.save(paulApplication3);
+        repository.save(paulApplication);
+
+        mockMvc.perform(
+                        get("/applications")
+                                .param("sort", "companyName,asc")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].companyName").value("Amazon"))
+                .andExpect(jsonPath("$.content[1].companyName").value("Google"))
+                .andExpect(jsonPath("$.content[2].companyName").value("Microsoft"));
+    }
+
+    @Test
+    void getAllApplications_shouldReturnApplicationsSortedByCompanyNameDescending() throws Exception {
+        JobApplication paulApplication = new JobApplication();
+        paulApplication.setCompanyName("Amazon");
+        paulApplication.setJobTitle("Backend Developer");
+        paulApplication.setLocation("New York");
+        paulApplication.setUser(testUser);
+
+        JobApplication paulApplication2 = new JobApplication();
+        paulApplication2.setCompanyName("Google");
+        paulApplication2.setJobTitle("Backend Developer");
+        paulApplication2.setLocation("New York");
+        paulApplication2.setUser(testUser);
+
+        JobApplication paulApplication3 = new JobApplication();
+        paulApplication3.setCompanyName("Microsoft");
+        paulApplication3.setJobTitle("Backend Developer");
+        paulApplication3.setLocation("New York");
+        paulApplication3.setUser(testUser);
+
+        repository.save(paulApplication2);
+        repository.save(paulApplication3);
+        repository.save(paulApplication);
+
+        mockMvc.perform(
+                        get("/applications")
+                                .param("sort", "companyName,desc")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].companyName").value("Microsoft"))
+                .andExpect(jsonPath("$.content[1].companyName").value("Google"))
+                .andExpect(jsonPath("$.content[2].companyName").value("Amazon"));
+    }
+
+    @Test
+    void getAllApplications_shouldReturnFirstPageOfApplications() throws Exception {
+        JobApplication paulApplication = new JobApplication();
+        paulApplication.setCompanyName("Amazon");
+        paulApplication.setJobTitle("Backend Developer");
+        paulApplication.setLocation("New York");
+        paulApplication.setUser(testUser);
+
+        JobApplication paulApplication2 = new JobApplication();
+        paulApplication2.setCompanyName("Google");
+        paulApplication2.setJobTitle("Backend Developer");
+        paulApplication2.setLocation("New York");
+        paulApplication2.setUser(testUser);
+
+        JobApplication paulApplication3 = new JobApplication();
+        paulApplication3.setCompanyName("Microsoft");
+        paulApplication3.setJobTitle("Backend Developer");
+        paulApplication3.setLocation("New York");
+        paulApplication3.setUser(testUser);
+
+        repository.save(paulApplication2);
+        repository.save(paulApplication3);
+        repository.save(paulApplication);
+
+        mockMvc.perform(
+                        get("/applications")
+                                .param("page", "0")
+                                .param("size", "2")
+                                .param("sort", "companyName,asc")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].companyName").value("Amazon"))
+                .andExpect(jsonPath("$.content[1].companyName").value("Google"))
+                .andExpect(jsonPath("$.content.length()").value(2));
+    }
+
+    @Test
+    void getAllApplications_shouldReturnSecondPageOfApplications() throws Exception {
+        JobApplication paulApplication = new JobApplication();
+        paulApplication.setCompanyName("Amazon");
+        paulApplication.setJobTitle("Backend Developer");
+        paulApplication.setLocation("New York");
+        paulApplication.setUser(testUser);
+
+        JobApplication paulApplication2 = new JobApplication();
+        paulApplication2.setCompanyName("Google");
+        paulApplication2.setJobTitle("Backend Developer");
+        paulApplication2.setLocation("New York");
+        paulApplication2.setUser(testUser);
+
+        JobApplication paulApplication3 = new JobApplication();
+        paulApplication3.setCompanyName("Microsoft");
+        paulApplication3.setJobTitle("Backend Developer");
+        paulApplication3.setLocation("New York");
+        paulApplication3.setUser(testUser);
+
+        repository.save(paulApplication2);
+        repository.save(paulApplication3);
+        repository.save(paulApplication);
+
+        mockMvc.perform(
+                        get("/applications")
+                                .param("page", "1")
+                                .param("size", "2")
+                                .param("sort", "companyName,asc")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].companyName").value("Microsoft"))
+                .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
+
 }
