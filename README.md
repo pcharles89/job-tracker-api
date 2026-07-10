@@ -2,7 +2,7 @@
 
 A RESTful Spring Boot application for tracking job applications throughout the job search process.
 
-This project was built to practice Spring Boot development concepts including REST APIs, validation, exception handling, JPA, Specifications, pagination, and automated testing.
+This project demonstrates modern backend development using Spring Boot, Spring Security with JWT authentication, REST APIs, Spring Data JPA, MySQL, Flyway database migrations, Docker, automated testing, and containerized deployment.
 
 ## Features
 
@@ -16,6 +16,13 @@ This project was built to practice Spring Boot development concepts including RE
 - Request validation
 - Global exception handling
 - Integration, controller, and service tests
+- JWT Authentication (Register/Login)
+- BCrypt Password Hashing
+- User authorization (users can only access their own applications)
+- Docker support
+- Containerized deployment
+- Swagger/OpenAPI documentation
+
 
 ## Tech Stack
 
@@ -31,11 +38,19 @@ This project was built to practice Spring Boot development concepts including RE
 - Mockito
 - MockMvc
 - Swagger / OpenAPI
+- Spring Security
+- JWT
+- Docker
+- Docker Compose
 
 ## Architecture
 
 ```text
 HTTP Request
+      ↓
+Spring Security Filter Chain
+      ↓
+JWT Authentication Filter
       ↓
 Controller
       ↓
@@ -43,7 +58,30 @@ Service
       ↓
 Repository
       ↓
-Database
+MySQL
+```
+## Project Structure
+
+```text
+src
+└── main
+    ├── java
+    │   └── com.paul.jobtrackerapi
+    │       ├── config
+    │       ├── controllers
+    │       ├── dtos
+    │       ├── entities
+    │       ├── exceptions
+    │       ├── mappers
+    │       ├── repositories
+    │       ├── security
+    │       ├── services
+    │       ├── specifications
+    │       └── JobTrackerApiApplication.java
+    └── resources
+        ├── db
+        │   └── migration
+        └── application.yml
 ```
 
 ### Layer Responsibilities
@@ -57,13 +95,41 @@ Database
 
 | Method | Endpoint | Description |
 |----------|----------|----------|
-| POST | `/applications` | Create application |
-| GET | `/applications` | Get all applications |
-| GET | `/applications/{id}` | Get application by ID |
-| PUT | `/applications/{id}` | Update application |
-| PATCH | `/applications/{id}` | Partially update application |
-| DELETE | `/applications/{id}` | Delete application |
-| GET | `/applications/search` | Search applications |
+| POST | `/auth/register` | Register a new user |
+| POST | `/auth/login` | Authenticate a user and return a JWT |
+
+### Job Applications
+
+| Method | Endpoint | Description |
+|----------|----------|----------|
+| POST | `/applications` | Create a job application |
+| GET | `/applications` | Get all applications for the authenticated user |
+| GET | `/applications/{id}` | Get an application by ID |
+| PUT | `/applications/{id}` | Fully update an application |
+| PATCH | `/applications/{id}` | Partially update an application |
+| DELETE | `/applications/{id}` | Delete an application |
+| GET | `/applications/search` | Search applications by company, location, and status |
+
+
+## Authentication
+
+This API uses JWT-based authentication.
+
+Users must register or log in to receive a JWT token.
+
+```http
+POST /auth/register
+POST /auth/login
+```
+
+Protected endpoints require the JWT to be included in the `Authorization` header.
+
+```http
+Authorization: Bearer <your-jwt-token>
+```
+
+Each user can only access their own job applications.
+
 
 ## Swagger UI
 
@@ -140,47 +206,62 @@ If invalid data is submitted, the API returns a structured error response.
 
 ## Testing
 
-The project includes:
+The project contains 51 automated tests covering:
 
-- Service Tests
-- Controller Tests
-- Integration Tests
+- Service tests
+- Controller tests
+- Integration tests
 
 Test coverage includes:
 
 - CRUD operations
-- Validation scenarios
+- Authentication
+- Authorization
+- Validation
 - Exception handling
 - Search functionality
 - Pagination
+- Sorting
 
 Integration tests run against an H2 in-memory database using a dedicated test profile.
 
 ## Running the Application
 
-### Clone Repository
+Clone the repository:
 
 ```bash
 git clone <your-repository-url>
 ```
 
-### Run MySQL
-
-Create a database named:
-
-```sql
-CREATE DATABASE jobtracker;
-```
-
-### Start Application
+Navigate to the project directory:
 
 ```bash
-./mvnw spring-boot:run
+cd job-tracker-api
 ```
 
+Build and start the application:
+
+```bash
+docker compose up --build
+```
+
+This command starts both the Spring Boot application and a MySQL database.
+
+Once the containers are running, the API is available at:
+
+```text
+http://localhost:8080
+```
+
+Swagger UI is available at:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
 ## Future Improvements
 
-- JWT Authentication
-- User Accounts
-- Docker Support
-- Job Application Analytics
+- Refresh token support for JWT authentication
+- Role-based authorization (Admin/User roles)
+- Email notifications for application status updates
+- Resume and cover letter file uploads
+- Job application analytics dashboard
