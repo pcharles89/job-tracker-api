@@ -38,7 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-
         String username = jwtService.extractUsername(token);
 
         if (username != null &&
@@ -47,7 +46,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var user = userRepository.findByUsername(username)
                     .orElse(null);
 
-            if (user != null && jwtService.isTokenValid(token, user.getUsername())) {
+            if (user != null &&
+                    jwtService.isTokenValid(token, user.getUsername())) {
 
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(
