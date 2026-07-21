@@ -5,6 +5,7 @@ import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
 import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.AnalyticsResponse;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
 import com.paul.jobtrackerapi.security.JwtAuthenticationFilter;
@@ -258,6 +259,37 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.content[0].jobTitle").value("Backend Developer"));
 
         Mockito.verify(service).getAllApplications(Mockito.any(Pageable.class));
+    }
+
+    @Test
+    void getAnalytics_shouldReturnApplicationAnalytics() throws Exception {
+
+        AnalyticsResponse response = AnalyticsResponse.builder()
+                .totalApplications(12)
+                .applied(4)
+                .phoneScreen(2)
+                .technicalInterview(2)
+                .finalInterview(1)
+                .offer(1)
+                .rejected(2)
+                .withdrawn(0)
+                .build();
+
+        Mockito.when(service.getAnalytics())
+                .thenReturn(response);
+
+        mockMvc.perform(get("/applications/analytics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalApplications").value(12))
+                .andExpect(jsonPath("$.applied").value(4))
+                .andExpect(jsonPath("$.phoneScreen").value(2))
+                .andExpect(jsonPath("$.technicalInterview").value(2))
+                .andExpect(jsonPath("$.finalInterview").value(1))
+                .andExpect(jsonPath("$.offer").value(1))
+                .andExpect(jsonPath("$.rejected").value(2))
+                .andExpect(jsonPath("$.withdrawn").value(0));
+
+        Mockito.verify(service).getAnalytics();
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
 import com.paul.jobtrackerapi.entities.JobApplication;
 import com.paul.jobtrackerapi.entities.User;
+import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
 import com.paul.jobtrackerapi.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -662,5 +663,59 @@ public class JobApplicationIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(1));
     }
 
+    @Test
+    void getAnalytics_shouldReturnCountsForCurrentUserOnly() throws Exception {
 
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication applied1 = new JobApplication();
+        applied1.setCompanyName("Amazon");
+        applied1.setJobTitle("Backend Developer");
+        applied1.setStatus(ApplicationStatus.APPLIED);
+        applied1.setUser(testUser);
+
+        JobApplication applied2 = new JobApplication();
+        applied2.setCompanyName("Google");
+        applied2.setJobTitle("Java Developer");
+        applied2.setStatus(ApplicationStatus.APPLIED);
+        applied2.setUser(testUser);
+
+        JobApplication phoneScreen = new JobApplication();
+        phoneScreen.setCompanyName("Microsoft");
+        phoneScreen.setJobTitle("Software Engineer");
+        phoneScreen.setStatus(ApplicationStatus.PHONE_SCREEN);
+        phoneScreen.setUser(testUser);
+
+        JobApplication rejected = new JobApplication();
+        rejected.setCompanyName("Netflix");
+        rejected.setJobTitle("Backend Engineer");
+        rejected.setStatus(ApplicationStatus.REJECTED);
+        rejected.setUser(testUser);
+
+        JobApplication aliceOffer = new JobApplication();
+        aliceOffer.setCompanyName("Apple");
+        aliceOffer.setJobTitle("Frontend Developer");
+        aliceOffer.setStatus(ApplicationStatus.OFFER);
+        aliceOffer.setUser(otherUser);
+
+        repository.save(applied1);
+        repository.save(applied2);
+        repository.save(phoneScreen);
+        repository.save(rejected);
+        repository.save(aliceOffer);
+
+        mockMvc.perform(get("/applications/analytics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalApplications").value(4))
+                .andExpect(jsonPath("$.applied").value(2))
+                .andExpect(jsonPath("$.phoneScreen").value(1))
+                .andExpect(jsonPath("$.technicalInterview").value(0))
+                .andExpect(jsonPath("$.finalInterview").value(0))
+                .andExpect(jsonPath("$.offer").value(0))
+                .andExpect(jsonPath("$.rejected").value(1))
+                .andExpect(jsonPath("$.withdrawn").value(0));
+    }
 }

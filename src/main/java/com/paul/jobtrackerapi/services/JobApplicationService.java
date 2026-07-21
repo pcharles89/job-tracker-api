@@ -1,24 +1,26 @@
 package com.paul.jobtrackerapi.services;
 
-import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
-import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
-import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
-import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.*;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.entities.JobApplication;
 import com.paul.jobtrackerapi.entities.User;
 import com.paul.jobtrackerapi.exceptions.InvalidCredentialsException;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
+import com.paul.jobtrackerapi.exceptions.UserNotFoundException;
 import com.paul.jobtrackerapi.mappers.JobApplicationMapper;
+import com.paul.jobtrackerapi.projections.StatusCountProjection;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
 import com.paul.jobtrackerapi.repositories.UserRepository;
 import com.paul.jobtrackerapi.specifications.JobApplicationSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class JobApplicationService {
@@ -35,15 +37,19 @@ public class JobApplicationService {
     }
 
     private User getCurrentUser() {
-        String username = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new IllegalStateException("No authenticated user found.");
+        }
+
+        String username = authentication.getName();
 
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new InvalidCredentialsException(
-                        "Authenticated user not found"
-                ));
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found."));
     }
 
     @Transactional
@@ -179,5 +185,76 @@ public class JobApplicationService {
         }
 
         return mapper.toResponse(application);
+    }
+
+    @Transactional(readOnly = true)
+    public AnalyticsResponse getAnalytics() {
+
+        User currentUser = getCurrentUser();
+
+        List<StatusCountProjection> results =
+                repository.countApplicationsByStatus(currentUser.getId());
+
+        long applied = 0;
+        long phoneScreen = 0;
+        long technicalInterview = 0;
+        long finalInterview = 0;
+        long offer = 0;
+        long rejected = 0;
+        long withdrawn = 0;
+
+        for (StatusCountProjection result : results) {
+
+            switch (result.getStatus()) {
+
+                case APPLIED:
+                    applied = result.getCount();
+                    break;
+
+                case PHONE_SCREEN:
+                    phoneScreen = result.getCount();
+                    break;
+
+                case TECHNICAL_INTERVIEW:
+                    technicalInterview = result.getCount();
+                    break;
+
+                case FINAL_INTERVIEW:
+                    finalInterview = result.getCount();
+                    break;
+
+                case OFFER:
+                    offer = result.getCount();
+                    break;
+
+                case REJECTED:
+                    rejected = result.getCount();
+                    break;
+
+                case WITHDRAWN:
+                    withdrawn = result.getCount();
+                    break;
+            }
+        }
+
+        long totalApplications =
+                applied
+                        + phoneScreen
+                        + technicalInterview
+                        + finalInterview
+                        + offer
+                        + rejected
+                        + withdrawn;
+
+        return AnalyticsResponse.builder()
+                .totalApplications(totalApplications)
+                .applied(applied)
+                .phoneScreen(phoneScreen)
+                .technicalInterview(technicalInterview)
+                .finalInterview(finalInterview)
+                .offer(offer)
+                .rejected(rejected)
+                .withdrawn(withdrawn)
+                .build();
     }
 }

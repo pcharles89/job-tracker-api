@@ -1,9 +1,6 @@
 package com.paul.jobtrackerapi.controllers;
 
-import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
-import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
-import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
-import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.*;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.services.JobApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +38,12 @@ public class JobApplicationController {
             @ParameterObject Pageable pageable
     ) {
         return service.getAllApplications(pageable);
+    }
+
+    @Operation(summary = "Get job application analytics")
+    @GetMapping("/analytics")
+    public AnalyticsResponse getAnalytics() {
+        return service.getAnalytics();
     }
 
     @Operation(summary = "Get a job application by ID")

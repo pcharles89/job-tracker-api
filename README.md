@@ -1,8 +1,20 @@
 # Job Tracker API
 
-A RESTful Spring Boot application for tracking job applications throughout the job search process.
+A secure RESTful API for tracking job applications throughout the job search process.
 
-This project demonstrates modern backend development using Spring Boot, Spring Security with JWT authentication, REST APIs, Spring Data JPA, MySQL, Flyway database migrations, Docker, automated testing, and containerized deployment.
+The application allows users to register, authenticate using JWT, and securely manage their own job applications. It demonstrates modern backend development using Spring Boot, Spring Security, PostgreSQL, Flyway, Docker, automated testing, and cloud deployment. Boot, Spring Security with JWT authentication, REST APIs, Spring Data JPA, MySQL, Flyway database migrations, Docker, automated testing, and containerized deployment.
+
+## Live Demo
+
+Base URL
+
+https://job-tracker-api-rw8t.onrender.com
+
+Swagger UI
+
+https://job-tracker-api-rw8t.onrender.com/swagger-ui/index.html
+
+> The application is hosted on Render's free tier and may take 30–60 seconds to wake up after periods of inactivity.
 
 ## Features
 
@@ -29,7 +41,7 @@ This project demonstrates modern backend development using Spring Boot, Spring S
 - Java 17
 - Spring Boot
 - Spring Data JPA
-- MySQL
+- PostgreSQL
 - H2 Database (testing)
 - Flyway
 - MapStruct
@@ -43,22 +55,39 @@ This project demonstrates modern backend development using Spring Boot, Spring S
 - Docker
 - Docker Compose
 
+## Key Backend Concepts Demonstrated
+
+- RESTful API design
+- Layered architecture (Controller → Service → Repository)
+- DTO pattern with MapStruct
+- JWT authentication and authorization
+- Stateless security with Spring Security
+- Password hashing with BCrypt
+- Database persistence with Spring Data JPA
+- Database versioning with Flyway migrations
+- Request validation and global exception handling
+- Pagination, sorting, and dynamic search using JPA Specifications
+- Automated testing with JUnit 5, Mockito, and MockMvc
+- Containerization with Docker and Docker Compose
+- Cloud deployment on Render
+
 ## Architecture
 
 ```text
-HTTP Request
-      ↓
-Spring Security Filter Chain
-      ↓
-JWT Authentication Filter
-      ↓
+Client
+   │
+   ▼
+Spring Security
+   │
+JWT Filter
+   │
 Controller
-      ↓
+   │
 Service
-      ↓
+   │
 Repository
-      ↓
-MySQL
+   │
+PostgreSQL
 ```
 ## Project Structure
 
@@ -110,26 +139,51 @@ src
 | DELETE | `/applications/{id}` | Delete an application |
 | GET | `/applications/search` | Search applications by company, location, and status |
 
+### Analytics
+
+- `GET /applications/analytics` — Returns application counts grouped by status for the authenticated user.
+
+Example response:
+
+```json
+{
+  "totalApplications": 4,
+  "applied": 2,
+  "phoneScreen": 1,
+  "technicalInterview": 0,
+  "finalInterview": 0,
+  "offer": 0,
+  "rejected": 1,
+  "withdrawn": 0
+}
+```
 
 ## Authentication
 
-This API uses JWT-based authentication.
+This API uses JWT (JSON Web Token) authentication.
 
-Users must register or log in to receive a JWT token.
+Users must first register or log in to receive a JWT access token.
 
 ```http
 POST /auth/register
 POST /auth/login
 ```
 
-Protected endpoints require the JWT to be included in the `Authorization` header.
+Include the JWT in the `Authorization` header when accessing protected endpoints:
 
 ```http
 Authorization: Bearer <your-jwt-token>
 ```
 
-Each user can only access their own job applications.
+Each authenticated user can only access and manage their own job applications.
 
+## Security Features
+
+- JWT Bearer authentication
+- BCrypt password hashing
+- Stateless authentication
+- User-level authorization
+- Protected REST endpoints
 
 ## Swagger UI
 
@@ -227,41 +281,49 @@ Integration tests run against an H2 in-memory database using a dedicated test pr
 
 ## Running the Application
 
-Clone the repository:
+### Clone the repository
 
 ```bash
 git clone <your-repository-url>
-```
-
-Navigate to the project directory:
-
-```bash
 cd job-tracker-api
 ```
 
-Build and start the application:
+### Run with Docker (Recommended)
 
 ```bash
 docker compose up --build
 ```
 
-This command starts both the Spring Boot application and a MySQL database.
+This starts both the Spring Boot application and a PostgreSQL database.
 
-Once the containers are running, the API is available at:
+The API will be available at:
 
 ```text
 http://localhost:8080
 ```
 
-Swagger UI is available at:
+Swagger UI:
 
 ```text
-http://localhost:8080/swagger-ui.html
+http://localhost:8080/swagger-ui/index.html
 ```
+
+### Run with Maven
+
+If you already have PostgreSQL running locally, you can start the application without Docker:
+
+```bash
+./mvnw spring-boot:run
+```
+
+
 ## Future Improvements
 
 - Refresh token support for JWT authentication
 - Role-based authorization (Admin/User roles)
-- Email notifications for application status updates
-- Resume and cover letter file uploads
 - Job application analytics dashboard
+- Email verification and password reset
+- CI/CD pipeline with GitHub Actions
+- Redis caching for frequently accessed data
+- API rate limiting
+- Resume and cover letter file uploads
