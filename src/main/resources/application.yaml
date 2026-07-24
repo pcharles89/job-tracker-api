@@ -4,7 +4,7 @@ jwt:
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/jobtracker}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/jobtracker}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:password}
 

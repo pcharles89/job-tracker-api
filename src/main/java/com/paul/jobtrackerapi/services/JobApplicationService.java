@@ -257,4 +257,18 @@ public class JobApplicationService {
                 .withdrawn(withdrawn)
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public List<CompanyAnalyticsResponse> getCompanyAnalytics() {
+
+        User currentUser = getCurrentUser();
+
+        return repository.countApplicationsByCompany(currentUser.getId())
+                .stream()
+                .map(result -> CompanyAnalyticsResponse.builder()
+                        .companyName(result.getCompanyName())
+                        .count(result.getCount())
+                        .build())
+                .toList();
+    }
 }

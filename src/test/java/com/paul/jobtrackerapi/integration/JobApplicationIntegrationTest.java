@@ -718,4 +718,49 @@ public class JobApplicationIntegrationTest {
                 .andExpect(jsonPath("$.rejected").value(1))
                 .andExpect(jsonPath("$.withdrawn").value(0));
     }
+
+    @Test
+    void getCompanyAnalytics_shouldReturnCountsForCurrentUserOnly() throws Exception {
+
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication amazon1 = new JobApplication();
+        amazon1.setCompanyName("Amazon");
+        amazon1.setJobTitle("Backend Developer");
+        amazon1.setStatus(ApplicationStatus.APPLIED);
+        amazon1.setUser(testUser);
+
+        JobApplication amazon2 = new JobApplication();
+        amazon2.setCompanyName("Amazon");
+        amazon2.setJobTitle("Java Developer");
+        amazon2.setStatus(ApplicationStatus.PHONE_SCREEN);
+        amazon2.setUser(testUser);
+
+        JobApplication google = new JobApplication();
+        google.setCompanyName("Google");
+        google.setJobTitle("Software Engineer");
+        google.setStatus(ApplicationStatus.APPLIED);
+        google.setUser(testUser);
+
+        JobApplication aliceAmazon = new JobApplication();
+        aliceAmazon.setCompanyName("Amazon");
+        aliceAmazon.setJobTitle("Frontend Developer");
+        aliceAmazon.setStatus(ApplicationStatus.OFFER);
+        aliceAmazon.setUser(otherUser);
+
+        repository.save(amazon1);
+        repository.save(amazon2);
+        repository.save(google);
+        repository.save(aliceAmazon);
+
+        mockMvc.perform(get("/applications/analytics/companies"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].companyName").value("Amazon"))
+                .andExpect(jsonPath("$[0].count").value(2))
+                .andExpect(jsonPath("$[1].companyName").value("Google"))
+                .andExpect(jsonPath("$[1].count").value(1));
+    }
 }

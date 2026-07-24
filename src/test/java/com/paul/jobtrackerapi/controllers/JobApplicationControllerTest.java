@@ -1,6 +1,7 @@
 package com.paul.jobtrackerapi.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paul.jobtrackerapi.dtos.CompanyAnalyticsResponse;
 import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
 import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
@@ -324,6 +325,41 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 Mockito.eq(ApplicationStatus.APPLIED),
                 Mockito.any(Pageable.class)
         );
+    }
+
+    @Test
+    void getCompanyAnalytics_shouldReturnApplicationCountsByCompany() throws Exception {
+
+        List<CompanyAnalyticsResponse> response = List.of(
+                CompanyAnalyticsResponse.builder()
+                        .companyName("Amazon")
+                        .count(3)
+                        .build(),
+
+                CompanyAnalyticsResponse.builder()
+                        .companyName("Google")
+                        .count(2)
+                        .build(),
+
+                CompanyAnalyticsResponse.builder()
+                        .companyName("Microsoft")
+                        .count(1)
+                        .build()
+        );
+
+        Mockito.when(service.getCompanyAnalytics())
+                .thenReturn(response);
+
+        mockMvc.perform(get("/applications/analytics/companies"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].companyName").value("Amazon"))
+                .andExpect(jsonPath("$[0].count").value(3))
+                .andExpect(jsonPath("$[1].companyName").value("Google"))
+                .andExpect(jsonPath("$[1].count").value(2))
+                .andExpect(jsonPath("$[2].companyName").value("Microsoft"))
+                .andExpect(jsonPath("$[2].count").value(1));
+
+        Mockito.verify(service).getCompanyAnalytics();
     }
 
 

@@ -141,21 +141,22 @@ src
 
 ### Analytics
 
-- `GET /applications/analytics` — Returns application counts grouped by status for the authenticated user.
+- `GET /applications/analytics` - Returns application counts by status
+- `GET /applications/analytics/companies` - Returns application counts grouped by company for the authenticated user
 
-Example response:
+#### Company Analytics Example
 
 ```json
-{
-  "totalApplications": 4,
-  "applied": 2,
-  "phoneScreen": 1,
-  "technicalInterview": 0,
-  "finalInterview": 0,
-  "offer": 0,
-  "rejected": 1,
-  "withdrawn": 0
-}
+[
+  {
+    "companyName": "Amazon",
+    "count": 3
+  },
+  {
+    "companyName": "Google",
+    "count": 2
+  }
+]
 ```
 
 ## Authentication

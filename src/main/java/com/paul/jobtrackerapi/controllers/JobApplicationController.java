@@ -12,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Applications")
 @RestController
 @RequestMapping("/applications")
@@ -44,6 +46,12 @@ public class JobApplicationController {
     @GetMapping("/analytics")
     public AnalyticsResponse getAnalytics() {
         return service.getAnalytics();
+    }
+
+    @Operation(summary = "Get application counts by company")
+    @GetMapping("/analytics/companies")
+    public List<CompanyAnalyticsResponse> getCompanyAnalytics() {
+        return service.getCompanyAnalytics();
     }
 
     @Operation(summary = "Get a job application by ID")
