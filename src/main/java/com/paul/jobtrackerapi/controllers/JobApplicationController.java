@@ -54,6 +54,12 @@ public class JobApplicationController {
         return service.getCompanyAnalytics();
     }
 
+    @Operation(summary = "Get application counts by location")
+    @GetMapping("/analytics/locations")
+    public List<LocationAnalyticsResponse> getLocationAnalytics() {
+        return service.getLocationAnalytics();
+    }
+
     @Operation(summary = "Get a job application by ID")
     @GetMapping("/{id}")
     public JobApplicationResponse getApplicationById(

@@ -143,6 +143,7 @@ src
 
 - `GET /applications/analytics` - Returns application counts by status
 - `GET /applications/analytics/companies` - Returns application counts grouped by company for the authenticated user
+- `GET /applications/analytics/locations` - Returns application counts grouped by location for the authenticated user
 
 #### Company Analytics Example
 

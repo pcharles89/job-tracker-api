@@ -3,6 +3,7 @@ package com.paul.jobtrackerapi.repositories;
 import com.paul.jobtrackerapi.entities.JobApplication;
 import com.paul.jobtrackerapi.entities.User;
 import com.paul.jobtrackerapi.projections.CompanyCountProjection;
+import com.paul.jobtrackerapi.projections.LocationCountProjection;
 import com.paul.jobtrackerapi.projections.StatusCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,5 +46,14 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
         """)
     List<CompanyCountProjection> countApplicationsByCompany(Long userId);
 
+    @Query("""
+        SELECT j.location AS location,
+        COUNT(j) AS count
+        FROM JobApplication j
+        WHERE j.user.id = :userId
+        GROUP BY j.location
+        ORDER BY COUNT(j) DESC
+        """)
+    List<LocationCountProjection> countApplicationsByLocation(Long userId);
 
 }

@@ -271,4 +271,18 @@ public class JobApplicationService {
                         .build())
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<LocationAnalyticsResponse> getLocationAnalytics() {
+
+        User currentUser = getCurrentUser();
+
+        return repository.countApplicationsByLocation(currentUser.getId())
+                .stream()
+                .map(result -> LocationAnalyticsResponse.builder()
+                        .location(result.getLocation())
+                        .count(result.getCount())
+                        .build())
+                .toList();
+    }
 }

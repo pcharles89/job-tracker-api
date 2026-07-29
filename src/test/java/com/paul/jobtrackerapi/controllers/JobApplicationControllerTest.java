@@ -2,6 +2,7 @@ package com.paul.jobtrackerapi.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paul.jobtrackerapi.dtos.CompanyAnalyticsResponse;
+import com.paul.jobtrackerapi.dtos.LocationAnalyticsResponse;
 import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
 import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
 import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
@@ -362,6 +363,33 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
         Mockito.verify(service).getCompanyAnalytics();
     }
 
+    @Test
+    void getLocationAnalytics_shouldReturnApplicationCountsByLocation() throws Exception {
+
+        List<LocationAnalyticsResponse> response = List.of(
+                LocationAnalyticsResponse.builder()
+                        .location("New York, NY")
+                        .count(3)
+                        .build(),
+
+                LocationAnalyticsResponse.builder()
+                        .location("Remote")
+                        .count(2)
+                        .build()
+        );
+
+        Mockito.when(service.getLocationAnalytics())
+                .thenReturn(response);
+
+        mockMvc.perform(get("/applications/analytics/locations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].location").value("New York, NY"))
+                .andExpect(jsonPath("$[0].count").value(3))
+                .andExpect(jsonPath("$[1].location").value("Remote"))
+                .andExpect(jsonPath("$[1].count").value(2));
+
+        Mockito.verify(service).getLocationAnalytics();
+    }
 
 
 }

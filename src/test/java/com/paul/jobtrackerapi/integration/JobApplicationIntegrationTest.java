@@ -763,4 +763,53 @@ public class JobApplicationIntegrationTest {
                 .andExpect(jsonPath("$[1].companyName").value("Google"))
                 .andExpect(jsonPath("$[1].count").value(1));
     }
+
+    @Test
+    void getLocationAnalytics_shouldReturnCountsForCurrentUserOnly() throws Exception {
+
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication ny1 = new JobApplication();
+        ny1.setCompanyName("Amazon");
+        ny1.setJobTitle("Backend Developer");
+        ny1.setLocation("New York, NY");
+        ny1.setStatus(ApplicationStatus.APPLIED);
+        ny1.setUser(testUser);
+
+        JobApplication ny2 = new JobApplication();
+        ny2.setCompanyName("Google");
+        ny2.setJobTitle("Java Developer");
+        ny2.setLocation("New York, NY");
+        ny2.setStatus(ApplicationStatus.PHONE_SCREEN);
+        ny2.setUser(testUser);
+
+        JobApplication remote = new JobApplication();
+        remote.setCompanyName("Microsoft");
+        remote.setJobTitle("Software Engineer");
+        remote.setLocation("Remote");
+        remote.setStatus(ApplicationStatus.APPLIED);
+        remote.setUser(testUser);
+
+        JobApplication aliceNewYork = new JobApplication();
+        aliceNewYork.setCompanyName("Apple");
+        aliceNewYork.setJobTitle("Frontend Developer");
+        aliceNewYork.setLocation("New York, NY");
+        aliceNewYork.setStatus(ApplicationStatus.OFFER);
+        aliceNewYork.setUser(otherUser);
+
+        repository.save(ny1);
+        repository.save(ny2);
+        repository.save(remote);
+        repository.save(aliceNewYork);
+
+        mockMvc.perform(get("/applications/analytics/locations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].location").value("New York, NY"))
+                .andExpect(jsonPath("$[0].count").value(2))
+                .andExpect(jsonPath("$[1].location").value("Remote"))
+                .andExpect(jsonPath("$[1].count").value(1));
+    }
 }
