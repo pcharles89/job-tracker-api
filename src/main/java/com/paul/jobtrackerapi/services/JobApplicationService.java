@@ -2,13 +2,14 @@ package com.paul.jobtrackerapi.services;
 
 import com.paul.jobtrackerapi.dtos.*;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
+import com.paul.jobtrackerapi.entities.ApplicationStatusHistory;
 import com.paul.jobtrackerapi.entities.JobApplication;
 import com.paul.jobtrackerapi.entities.User;
-import com.paul.jobtrackerapi.exceptions.InvalidCredentialsException;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
 import com.paul.jobtrackerapi.exceptions.UserNotFoundException;
 import com.paul.jobtrackerapi.mappers.JobApplicationMapper;
 import com.paul.jobtrackerapi.projections.StatusCountProjection;
+import com.paul.jobtrackerapi.repositories.ApplicationStatusHistoryRepository;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
 import com.paul.jobtrackerapi.repositories.UserRepository;
 import com.paul.jobtrackerapi.specifications.JobApplicationSpecification;
@@ -20,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,12 +30,16 @@ public class JobApplicationService {
     private final JobApplicationRepository repository;
     private final JobApplicationMapper mapper;
     private final UserRepository userRepository;
+    private final ApplicationStatusHistoryRepository statusHistoryRepository;
 
     public JobApplicationService(JobApplicationRepository repository,
-                                 JobApplicationMapper mapper, UserRepository userRepository) {
+                                 JobApplicationMapper mapper, UserRepository userRepository,
+                                 ApplicationStatusHistoryRepository statusHistoryRepository) {
+
         this.repository = repository;
         this.mapper = mapper;
         this.userRepository = userRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
     private User getCurrentUser() {
@@ -60,6 +66,15 @@ public class JobApplicationService {
         jobApplication.setUser(currentUser);
 
         JobApplication savedApplication = repository.save(jobApplication);
+
+        ApplicationStatusHistory history = ApplicationStatusHistory.builder()
+                .jobApplication(savedApplication)
+                .status(savedApplication.getStatus())
+                .changedAt(LocalDateTime.now())
+                .build();
+
+        statusHistoryRepository.save(history);
+
         return mapper.toResponse(savedApplication);
     }
 
@@ -87,6 +102,8 @@ public class JobApplicationService {
         JobApplication existingApplication = repository.findByIdAndUser(id, currentUser)
                 .orElseThrow(() -> new JobApplicationNotFoundException(id));
 
+        ApplicationStatus oldStatus = existingApplication.getStatus();
+
         existingApplication.setCompanyName(request.getCompanyName());
         existingApplication.setJobTitle(request.getJobTitle());
         existingApplication.setJobUrl(request.getJobUrl());
@@ -97,6 +114,16 @@ public class JobApplicationService {
         existingApplication.setNotes(request.getNotes());
 
         JobApplication savedApplication = repository.save(existingApplication);
+
+        if(oldStatus != savedApplication.getStatus()) {
+            ApplicationStatusHistory history = ApplicationStatusHistory.builder()
+                    .jobApplication(savedApplication)
+                    .status(savedApplication.getStatus())
+                    .changedAt(LocalDateTime.now())
+                    .build();
+
+            statusHistoryRepository.save(history);
+        }
 
         return mapper.toResponse(savedApplication);
     }
@@ -152,6 +179,8 @@ public class JobApplicationService {
         JobApplication application = repository.findByIdAndUser(id, currentUser)
                 .orElseThrow(() -> new JobApplicationNotFoundException(id));
 
+        ApplicationStatus oldStatus = application.getStatus();
+
         if (request.companyName() != null) {
             application.setCompanyName(request.companyName());
         }
@@ -182,6 +211,17 @@ public class JobApplicationService {
 
         if (request.status() != null) {
             application.setStatus(request.status());
+        }
+
+        if(oldStatus != application.getStatus()) {
+            ApplicationStatusHistory history =
+                    ApplicationStatusHistory.builder()
+                            .jobApplication(application)
+                            .status(application.getStatus())
+                            .changedAt(LocalDateTime.now())
+                            .build();
+
+            statusHistoryRepository.save(history);
         }
 
         return mapper.toResponse(application);
@@ -284,5 +324,27 @@ public class JobApplicationService {
                         .count(result.getCount())
                         .build())
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationStatusHistoryResponse> getStatusHistory(
+            Long applicationId
+    ) {
+                User currentUser =  getCurrentUser();
+
+                repository.findByIdAndUser(applicationId, currentUser)
+                .orElseThrow(() ->
+                        new JobApplicationNotFoundException(applicationId)
+                );
+
+                return statusHistoryRepository
+                    .findByJobApplicationIdOrderByChangedAtAsc(applicationId)
+                    .stream()
+                    .map(history -> new ApplicationStatusHistoryResponse(
+                        history.getId(),
+                        history.getStatus(),
+                        history.getChangedAt()
+                    ))
+                    .toList();
     }
 }

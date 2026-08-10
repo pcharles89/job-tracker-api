@@ -1,14 +1,14 @@
 package com.paul.jobtrackerapi.services;
 
-import com.paul.jobtrackerapi.dtos.CreateJobApplicationRequest;
-import com.paul.jobtrackerapi.dtos.JobApplicationResponse;
+import com.paul.jobtrackerapi.dtos.*;
+import com.paul.jobtrackerapi.entities.ApplicationStatus;
+import com.paul.jobtrackerapi.entities.ApplicationStatusHistory;
 import com.paul.jobtrackerapi.entities.JobApplication;
 import com.paul.jobtrackerapi.entities.User;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
 import com.paul.jobtrackerapi.mappers.JobApplicationMapper;
+import com.paul.jobtrackerapi.repositories.ApplicationStatusHistoryRepository;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
-import com.paul.jobtrackerapi.dtos.UpdateJobApplicationRequest;
-import com.paul.jobtrackerapi.dtos.PatchJobApplicationRequest;
 import com.paul.jobtrackerapi.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,16 +34,19 @@ class JobApplicationServiceTest {
     private JobApplicationMapper mapper;
     private JobApplicationService service;
     private UserRepository userRepository;
+    private ApplicationStatusHistoryRepository statusHistoryRepository;
+    private User user;
 
     @BeforeEach
     void setUp() {
         repository = Mockito.mock(JobApplicationRepository.class);
         mapper = Mockito.mock(JobApplicationMapper.class);
         userRepository = Mockito.mock(UserRepository.class);
+        statusHistoryRepository = Mockito.mock(ApplicationStatusHistoryRepository.class);
 
-        service = new JobApplicationService(repository, mapper, userRepository);
+        service = new JobApplicationService(repository, mapper, userRepository, statusHistoryRepository);
 
-        User user = User.builder()
+        user = User.builder()
                 .id(1L)
                 .username("paul")
                 .password("hashedPassword")
@@ -159,16 +163,19 @@ class JobApplicationServiceTest {
         UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
         request.setCompanyName("Google");
         request.setJobTitle("Java Developer");
+        request.setStatus(ApplicationStatus.APPLIED);
 
         JobApplication existingEntity = new JobApplication();
         existingEntity.setId(id);
         existingEntity.setCompanyName("Amazon");
         existingEntity.setJobTitle("Backend Developer");
+        existingEntity.setStatus(ApplicationStatus.APPLIED);
 
         JobApplication savedEntity = new JobApplication();
         savedEntity.setId(id);
         savedEntity.setCompanyName("Google");
         savedEntity.setJobTitle("Java Developer");
+        savedEntity.setStatus(ApplicationStatus.APPLIED);
 
         JobApplicationResponse response = new JobApplicationResponse();
         response.setId(id);
@@ -422,5 +429,236 @@ class JobApplicationServiceTest {
                 Mockito.eq(pageable)
         );
         Mockito.verify(mapper).toResponse(entity);
+    }
+
+    @Test
+    void createApplicationShouldCreateInitialStatusHistory() {
+        CreateJobApplicationRequest request = new CreateJobApplicationRequest();
+        request.setCompanyName("Google");
+        request.setJobTitle("Backend Developer");
+
+        JobApplication mappedApplication = new JobApplication();
+        mappedApplication.setCompanyName("Google");
+        mappedApplication.setJobTitle("Backend Developer");
+        mappedApplication.setStatus(ApplicationStatus.APPLIED);
+
+        JobApplication savedApplication = new JobApplication();
+        savedApplication.setId(10L);
+        savedApplication.setCompanyName("Google");
+        savedApplication.setJobTitle("Backend Developer");
+        savedApplication.setStatus(ApplicationStatus.APPLIED);
+
+        Mockito.when(mapper.toEntity(request))
+                .thenReturn(mappedApplication);
+
+        Mockito.when(repository.save(mappedApplication))
+                .thenReturn(savedApplication);
+
+        LocalDateTime before = LocalDateTime.now();
+
+        service.createApplication(request);
+
+        LocalDateTime after = LocalDateTime.now();
+
+        Mockito.verify(statusHistoryRepository)
+                .save(Mockito.argThat(history -> {
+                    LocalDateTime changedAt = history.getChangedAt();
+
+                    return history.getJobApplication() == savedApplication
+                            && history.getStatus() == ApplicationStatus.APPLIED
+                            && changedAt != null
+                            && !changedAt.isBefore(before)
+                            && !changedAt.isAfter(after);
+                }));
+    }
+
+    @Test
+    void updateApplicationShouldCreateHistoryWhenStatusChanges() {
+        Long applicationId = 10L;
+
+        JobApplication existingApplication = new JobApplication();
+        existingApplication.setId(applicationId);
+        existingApplication.setCompanyName("Google");
+        existingApplication.setJobTitle("Backend Developer");
+        existingApplication.setStatus(ApplicationStatus.APPLIED);
+        existingApplication.setUser(user);
+
+        UpdateJobApplicationRequest request =
+                new UpdateJobApplicationRequest();
+
+        request.setCompanyName("Google");
+        request.setJobTitle("Backend Developer");
+        request.setStatus(ApplicationStatus.PHONE_SCREEN);
+
+        Mockito.when(repository.findByIdAndUser(applicationId, user))
+                .thenReturn(Optional.of(existingApplication));
+
+        Mockito.when(repository.save(existingApplication))
+                .thenReturn(existingApplication);
+
+        LocalDateTime before = LocalDateTime.now();
+
+        service.updateApplication(applicationId, request);
+
+        LocalDateTime after = LocalDateTime.now();
+
+        Mockito.verify(statusHistoryRepository)
+                .save(Mockito.argThat(history -> {
+                    LocalDateTime changedAt = history.getChangedAt();
+
+                    return history.getJobApplication() == existingApplication
+                            && history.getStatus()
+                            == ApplicationStatus.PHONE_SCREEN
+                            && changedAt != null
+                            && !changedAt.isBefore(before)
+                            && !changedAt.isAfter(after);
+                }));
+    }
+
+    @Test
+    void updateApplicationShouldNotCreateHistoryWhenStatusDoesNotChange() {
+        Long applicationId = 10L;
+
+        JobApplication existingApplication = new JobApplication();
+        existingApplication.setId(applicationId);
+        existingApplication.setCompanyName("Google");
+        existingApplication.setJobTitle("Backend Developer");
+        existingApplication.setStatus(ApplicationStatus.APPLIED);
+        existingApplication.setUser(user);
+
+        UpdateJobApplicationRequest request =
+                new UpdateJobApplicationRequest();
+
+        request.setCompanyName("Google");
+        request.setJobTitle("Senior Backend Developer");
+        request.setStatus(ApplicationStatus.APPLIED);
+
+        Mockito.when(repository.findByIdAndUser(applicationId, user))
+                .thenReturn(Optional.of(existingApplication));
+
+        Mockito.when(repository.save(existingApplication))
+                .thenReturn(existingApplication);
+
+        service.updateApplication(applicationId, request);
+
+        Mockito.verify(statusHistoryRepository, Mockito.never())
+                .save(Mockito.any(ApplicationStatusHistory.class));
+    }
+
+    @Test
+    void patchApplicationShouldCreateHistoryWhenStatusChanges() {
+        Long applicationId = 10L;
+
+        JobApplication existingApplication = new JobApplication();
+        existingApplication.setId(applicationId);
+        existingApplication.setCompanyName("Google");
+        existingApplication.setJobTitle("Backend Developer");
+        existingApplication.setStatus(ApplicationStatus.APPLIED);
+        existingApplication.setUser(user);
+
+        PatchJobApplicationRequest request =
+                new PatchJobApplicationRequest(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        ApplicationStatus.PHONE_SCREEN
+                );
+
+        Mockito.when(repository.findByIdAndUser(applicationId, user))
+                .thenReturn(Optional.of(existingApplication));
+
+        LocalDateTime before = LocalDateTime.now();
+
+        service.patchApplication(applicationId, request);
+
+        LocalDateTime after = LocalDateTime.now();
+
+        Mockito.verify(statusHistoryRepository)
+                .save(Mockito.argThat(history -> {
+                    LocalDateTime changedAt = history.getChangedAt();
+
+                    return history.getJobApplication() == existingApplication
+                            && history.getStatus() == ApplicationStatus.PHONE_SCREEN
+                            && changedAt != null
+                            && !changedAt.isBefore(before)
+                            && !changedAt.isAfter(after);
+                }));
+    }
+
+    @Test
+    void getStatusHistoryShouldReturnHistoryResponses() {
+        Long applicationId = 10L;
+
+        JobApplication application = new JobApplication();
+        application.setId(applicationId);
+        application.setUser(user);
+
+        LocalDateTime firstTime =
+                LocalDateTime.of(2026, 8, 1, 9, 0);
+
+        LocalDateTime secondTime =
+                LocalDateTime.of(2026, 8, 5, 14, 30);
+
+        ApplicationStatusHistory firstHistory =
+                ApplicationStatusHistory.builder()
+                        .id(1L)
+                        .jobApplication(application)
+                        .status(ApplicationStatus.APPLIED)
+                        .changedAt(firstTime)
+                        .build();
+
+        ApplicationStatusHistory secondHistory =
+                ApplicationStatusHistory.builder()
+                        .id(2L)
+                        .jobApplication(application)
+                        .status(ApplicationStatus.PHONE_SCREEN)
+                        .changedAt(secondTime)
+                        .build();
+
+        Mockito.when(repository.findByIdAndUser(applicationId, user))
+                .thenReturn(Optional.of(application));
+
+        Mockito.when(
+                statusHistoryRepository
+                        .findByJobApplicationIdOrderByChangedAtAsc(applicationId)
+        ).thenReturn(List.of(firstHistory, secondHistory));
+
+        List<ApplicationStatusHistoryResponse> result =
+                service.getStatusHistory(applicationId);
+
+        assertEquals(2, result.size());
+
+        assertEquals(1L, result.get(0).id());
+        assertEquals(ApplicationStatus.APPLIED, result.get(0).status());
+        assertEquals(firstTime, result.get(0).changedAt());
+
+        assertEquals(2L, result.get(1).id());
+        assertEquals(
+                ApplicationStatus.PHONE_SCREEN,
+                result.get(1).status()
+        );
+        assertEquals(secondTime, result.get(1).changedAt());
+    }
+
+    @Test
+    void getStatusHistoryShouldThrowWhenApplicationNotFoundForUser() {
+        Long applicationId = 10L;
+
+        Mockito.when(repository.findByIdAndUser(applicationId, user))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                JobApplicationNotFoundException.class,
+                () -> service.getStatusHistory(applicationId)
+        );
+
+        Mockito.verify(
+                statusHistoryRepository,
+                Mockito.never()
+        ).findByJobApplicationIdOrderByChangedAtAsc(Mockito.anyLong());
     }
 }

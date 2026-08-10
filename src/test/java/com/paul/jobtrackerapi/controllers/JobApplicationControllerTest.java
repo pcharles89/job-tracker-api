@@ -116,6 +116,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
         UpdateJobApplicationRequest request = new UpdateJobApplicationRequest();
         request.setCompanyName("Google");
         request.setJobTitle("Java Developer");
+        request.setStatus(ApplicationStatus.APPLIED);
 
         JobApplicationResponse response = new JobApplicationResponse();
         response.setId(1L);

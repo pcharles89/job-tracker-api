@@ -10,6 +10,7 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,6 +59,16 @@ public class JobApplicationController {
     @GetMapping("/analytics/locations")
     public List<LocationAnalyticsResponse> getLocationAnalytics() {
         return service.getLocationAnalytics();
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<ApplicationStatusHistoryResponse>> getStatusHistory(
+            @PathVariable Long id
+    ) {
+        List<ApplicationStatusHistoryResponse> history =
+                service.getStatusHistory(id);
+
+        return ResponseEntity.ok(history);
     }
 
     @Operation(summary = "Get a job application by ID")
@@ -113,4 +124,5 @@ public class JobApplicationController {
     ) {
         return service.patchApplication(id, request);
     }
+
 }
