@@ -1,4 +1,6 @@
 package com.paul.jobtrackerapi.dtos;
 
-public record UpdateInterviewOutcomeRequest() {
+import com.paul.jobtrackerapi.entities.InterviewOutcome;
+
+public record UpdateInterviewOutcomeRequest(InterviewOutcome outcome){
 }

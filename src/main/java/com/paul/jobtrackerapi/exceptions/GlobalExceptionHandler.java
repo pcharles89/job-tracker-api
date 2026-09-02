@@ -64,4 +64,16 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
+    @ExceptionHandler(InterviewNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleInterviewNotFound(
+            InterviewNotFoundException ex
+    ) {
+        return new ErrorResponse(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND.value(),
+                null
+        );
+    }
 }

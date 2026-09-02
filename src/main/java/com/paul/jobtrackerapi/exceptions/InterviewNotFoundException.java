@@ -1,7 +1,8 @@
 package com.paul.jobtrackerapi.exceptions;
 
 public class InterviewNotFoundException extends RuntimeException {
-  public InterviewNotFoundException(String message) {
-    super(message);
-  }
+
+    public InterviewNotFoundException(Long id) {
+        super("Interview not found with id " + id);
+    }
 }

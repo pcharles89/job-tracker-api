@@ -1,15 +1,14 @@
 package com.paul.jobtrackerapi.services;
 
 import com.paul.jobtrackerapi.dtos.*;
-import com.paul.jobtrackerapi.entities.ApplicationStatus;
-import com.paul.jobtrackerapi.entities.ApplicationStatusHistory;
-import com.paul.jobtrackerapi.entities.JobApplication;
-import com.paul.jobtrackerapi.entities.User;
+import com.paul.jobtrackerapi.entities.*;
+import com.paul.jobtrackerapi.exceptions.InterviewNotFoundException;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
 import com.paul.jobtrackerapi.exceptions.UserNotFoundException;
 import com.paul.jobtrackerapi.mappers.JobApplicationMapper;
 import com.paul.jobtrackerapi.projections.StatusCountProjection;
 import com.paul.jobtrackerapi.repositories.ApplicationStatusHistoryRepository;
+import com.paul.jobtrackerapi.repositories.InterviewRepository;
 import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
 import com.paul.jobtrackerapi.repositories.UserRepository;
 import com.paul.jobtrackerapi.specifications.JobApplicationSpecification;
@@ -31,15 +30,18 @@ public class JobApplicationService {
     private final JobApplicationMapper mapper;
     private final UserRepository userRepository;
     private final ApplicationStatusHistoryRepository statusHistoryRepository;
+    private final InterviewRepository interviewRepository;
 
     public JobApplicationService(JobApplicationRepository repository,
                                  JobApplicationMapper mapper, UserRepository userRepository,
-                                 ApplicationStatusHistoryRepository statusHistoryRepository) {
+                                 ApplicationStatusHistoryRepository statusHistoryRepository,
+                                 InterviewRepository interviewRepository) {
 
         this.repository = repository;
         this.mapper = mapper;
         this.userRepository = userRepository;
         this.statusHistoryRepository = statusHistoryRepository;
+        this.interviewRepository = interviewRepository;
     }
 
     private User getCurrentUser() {
@@ -330,12 +332,8 @@ public class JobApplicationService {
     public List<ApplicationStatusHistoryResponse> getStatusHistory(
             Long applicationId
     ) {
-                User currentUser =  getCurrentUser();
-
-                repository.findByIdAndUser(applicationId, currentUser)
-                .orElseThrow(() ->
-                        new JobApplicationNotFoundException(applicationId)
-                );
+                JobApplication application =
+                        getApplicationForCurrentUser(applicationId);
 
                 return statusHistoryRepository
                     .findByJobApplicationIdOrderByChangedAtAsc(applicationId)
@@ -346,5 +344,167 @@ public class JobApplicationService {
                         history.getChangedAt()
                     ))
                     .toList();
+    }
+
+    @Transactional
+    public InterviewResponse createInterview(
+            Long applicationId,
+            CreateInterviewRequest request
+    ) {
+        JobApplication application =
+                getApplicationForCurrentUser(applicationId);
+
+        Interview interview = Interview.builder()
+                .jobApplication(application)
+                .type(request.type())
+                .scheduledAt(request.scheduledAt())
+                .notes(request.notes())
+                .build();
+
+        Interview savedInterview =
+                interviewRepository.save(interview);
+
+        return new InterviewResponse(
+                savedInterview.getId(),
+                savedInterview.getType(),
+                savedInterview.getScheduledAt(),
+                savedInterview.getNotes(),
+                savedInterview.getOutcome()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<InterviewResponse> getInterviews(Long applicationId) {
+
+        JobApplication application =
+                getApplicationForCurrentUser(applicationId);
+
+        return interviewRepository
+                .findByJobApplicationIdOrderByScheduledAtAsc(applicationId)
+                .stream()
+                .map(interview -> new InterviewResponse(
+                        interview.getId(),
+                        interview.getType(),
+                        interview.getScheduledAt(),
+                        interview.getNotes(),
+                        interview.getOutcome()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public InterviewResponse updateInterviewOutcome(
+            Long applicationId,
+            Long interviewId,
+            UpdateInterviewOutcomeRequest request
+    ) {
+        JobApplication application =
+                getApplicationForCurrentUser(applicationId);
+
+        Interview interview =
+                interviewRepository.findById(interviewId)
+                        .orElseThrow(() ->
+                                new InterviewNotFoundException(interviewId)
+                        );
+
+        if (!interview.getJobApplication().getId().equals(application.getId())) {
+            throw new InterviewNotFoundException(interviewId);
+        }
+
+        interview.setOutcome(request.outcome());
+
+        Interview savedInterview =
+                interviewRepository.save(interview);
+
+        return new InterviewResponse(
+                savedInterview.getId(),
+                savedInterview.getType(),
+                savedInterview.getScheduledAt(),
+                savedInterview.getNotes(),
+                savedInterview.getOutcome()
+        );
+    }
+
+    @Transactional
+    public InterviewResponse updateInterview(
+            Long applicationId,
+            Long interviewId,
+            UpdateInterviewRequest request
+    ) {
+        JobApplication application =
+                getApplicationForCurrentUser(applicationId);
+
+        Interview interview =
+                interviewRepository.findById(interviewId)
+                        .orElseThrow(() ->
+                                new InterviewNotFoundException(interviewId)
+                        );
+
+        if (!interview.getJobApplication().getId()
+                .equals(application.getId())) {
+            throw new InterviewNotFoundException(interviewId);
+        }
+
+        interview.setType(request.type());
+        interview.setScheduledAt(request.scheduledAt());
+        interview.setNotes(request.notes());
+
+        Interview savedInterview =
+                interviewRepository.save(interview);
+
+        return new InterviewResponse(
+                savedInterview.getId(),
+                savedInterview.getType(),
+                savedInterview.getScheduledAt(),
+                savedInterview.getNotes(),
+                savedInterview.getOutcome()
+        );
+    }
+
+    private JobApplication getApplicationForCurrentUser(Long applicationId) {
+        User currentUser = getCurrentUser();
+
+        return repository.findByIdAndUser(applicationId, currentUser)
+                .orElseThrow(() ->
+                        new JobApplicationNotFoundException(applicationId)
+                );
+    }
+
+    @Transactional
+    public void deleteInterview(
+            Long applicationId,
+            Long interviewId
+    ) {
+        JobApplication application =
+                getApplicationForCurrentUser(applicationId);
+
+        Interview interview =
+                interviewRepository.findById(interviewId)
+                        .orElseThrow(() ->
+                                new InterviewNotFoundException(interviewId)
+                        );
+
+        if (!interview.getJobApplication().getId()
+                .equals(application.getId())) {
+            throw new InterviewNotFoundException(interviewId);
+        }
+
+        interviewRepository.delete(interview);
+    }
+
+    @Transactional(readOnly = true)
+    public List<InterviewOutcomeAnalyticsResponse> getInterviewOutcomeAnalytics() {
+        User currentUser = getCurrentUser();
+
+        return interviewRepository
+                .countByOutcomeForUser(currentUser.getId())
+                .stream()
+                .map(projection ->
+                        new InterviewOutcomeAnalyticsResponse(
+                                projection.getOutcome(),
+                                projection.getCount()
+                        )
+                )
+                .toList();
     }
 }

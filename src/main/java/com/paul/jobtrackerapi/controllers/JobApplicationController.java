@@ -61,6 +61,7 @@ public class JobApplicationController {
         return service.getLocationAnalytics();
     }
 
+    @Operation(summary = "Get application status history")
     @GetMapping("/{id}/history")
     public ResponseEntity<List<ApplicationStatusHistoryResponse>> getStatusHistory(
             @PathVariable Long id
@@ -125,4 +126,81 @@ public class JobApplicationController {
         return service.patchApplication(id, request);
     }
 
+    @Operation(summary = "Create an interview for a job application")
+    @PostMapping("/{id}/interviews")
+    public ResponseEntity<InterviewResponse> createInterview(
+            @PathVariable Long id,
+            @RequestBody CreateInterviewRequest request
+    ) {
+        InterviewResponse response =
+                service.createInterview(id, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "Get interviews for a job application")
+    @GetMapping("/{id}/interviews")
+    public ResponseEntity<List<InterviewResponse>> getInterviews(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(
+                service.getInterviews(id)
+        );
+    }
+
+    @Operation(summary = "Update an interview outcome")
+    @PatchMapping("/{applicationId}/interviews/{interviewId}/outcome")
+    public ResponseEntity<InterviewResponse> updateInterviewOutcome(
+            @PathVariable Long applicationId,
+            @PathVariable Long interviewId,
+            @RequestBody UpdateInterviewOutcomeRequest request
+    ) {
+        InterviewResponse response =
+                service.updateInterviewOutcome(
+                        applicationId,
+                        interviewId,
+                        request
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Update interview details")
+    @PutMapping("/{applicationId}/interviews/{interviewId}")
+    public ResponseEntity<InterviewResponse> updateInterview(
+            @PathVariable Long applicationId,
+            @PathVariable Long interviewId,
+            @RequestBody UpdateInterviewRequest request
+    ) {
+        InterviewResponse response =
+                service.updateInterview(
+                        applicationId,
+                        interviewId,
+                        request
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Delete an interview")
+    @DeleteMapping("/{applicationId}/interviews/{interviewId}")
+    public ResponseEntity<Void> deleteInterview(
+            @PathVariable Long applicationId,
+            @PathVariable Long interviewId
+    ) {
+        service.deleteInterview(applicationId, interviewId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Get interview counts by outcome")
+    @GetMapping("/interviews/analytics/outcomes")
+    public ResponseEntity<List<InterviewOutcomeAnalyticsResponse>>
+    getInterviewOutcomeAnalytics() {
+
+        List<InterviewOutcomeAnalyticsResponse> response =
+                service.getInterviewOutcomeAnalytics();
+
+        return ResponseEntity.ok(response);
+    }
 }
