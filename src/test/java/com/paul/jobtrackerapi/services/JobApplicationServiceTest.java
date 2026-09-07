@@ -1237,4 +1237,79 @@ class JobApplicationServiceTest {
 
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void getUpcomingInterviewsShouldReturnUpcomingInterviews() {
+        LocalDateTime firstTime =
+                LocalDateTime.of(2026, 9, 5, 10, 0);
+
+        LocalDateTime secondTime =
+                LocalDateTime.of(2026, 9, 10, 14, 0);
+
+        JobApplication application = new JobApplication();
+        application.setId(1L);
+        application.setUser(user);
+
+        Interview firstInterview = Interview.builder()
+                .id(10L)
+                .jobApplication(application)
+                .type(InterviewType.TECHNICAL)
+                .scheduledAt(firstTime)
+                .notes("Technical interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        Interview secondInterview = Interview.builder()
+                .id(11L)
+                .jobApplication(application)
+                .type(InterviewType.FINAL)
+                .scheduledAt(secondTime)
+                .notes("Final interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        Mockito.when(
+                interviewRepository
+                        .findByJobApplicationUserIdAndScheduledAtAfterOrderByScheduledAtAsc(
+                                Mockito.eq(user.getId()),
+                                Mockito.any(LocalDateTime.class)
+                        )
+        ).thenReturn(
+                List.of(firstInterview, secondInterview)
+        );
+
+        List<InterviewResponse> result =
+                service.getUpcomingInterviews();
+
+        assertEquals(2, result.size());
+
+        assertEquals(10L, result.get(0).id());
+        assertEquals(InterviewType.TECHNICAL, result.get(0).type());
+        assertEquals(firstTime, result.get(0).scheduledAt());
+        assertEquals("Technical interview", result.get(0).notes());
+        assertEquals(InterviewOutcome.PENDING, result.get(0).outcome());
+
+        assertEquals(11L, result.get(1).id());
+        assertEquals(InterviewType.FINAL, result.get(1).type());
+        assertEquals(secondTime, result.get(1).scheduledAt());
+        assertEquals("Final interview", result.get(1).notes());
+        assertEquals(InterviewOutcome.PENDING, result.get(1).outcome());
+    }
+
+    @Test
+    void getUpcomingInterviewsShouldReturnEmptyListWhenNoneExist() {
+
+        Mockito.when(
+                interviewRepository
+                        .findByJobApplicationUserIdAndScheduledAtAfterOrderByScheduledAtAsc(
+                                Mockito.eq(user.getId()),
+                                Mockito.any(LocalDateTime.class)
+                        )
+        ).thenReturn(List.of());
+
+        List<InterviewResponse> result =
+                service.getUpcomingInterviews();
+
+        assertTrue(result.isEmpty());
+    }
 }

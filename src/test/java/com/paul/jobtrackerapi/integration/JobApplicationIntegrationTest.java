@@ -1801,4 +1801,130 @@ public class JobApplicationIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
+    @Test
+    void getUpcomingInterviews_shouldReturnOnlyFutureInterviews()
+            throws Exception {
+
+        JobApplication application = new JobApplication();
+        application.setCompanyName("Google");
+        application.setJobTitle("Java Developer");
+        application.setLocation("New York");
+        application.setUser(testUser);
+
+        JobApplication savedApplication =
+                repository.save(application);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Interview pastInterview = Interview.builder()
+                .jobApplication(savedApplication)
+                .type(InterviewType.TECHNICAL)
+                .scheduledAt(now.minusDays(1))
+                .notes("Past interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        Interview firstUpcomingInterview = Interview.builder()
+                .jobApplication(savedApplication)
+                .type(InterviewType.TECHNICAL)
+                .scheduledAt(now.plusDays(1))
+                .notes("First upcoming interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        Interview secondUpcomingInterview = Interview.builder()
+                .jobApplication(savedApplication)
+                .type(InterviewType.FINAL)
+                .scheduledAt(now.plusDays(3))
+                .notes("Second upcoming interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        interviewRepository.saveAll(
+                List.of(
+                        pastInterview,
+                        firstUpcomingInterview,
+                        secondUpcomingInterview
+                )
+        );
+
+        mockMvc.perform(
+                        get("/applications/interviews/upcoming")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].notes")
+                        .value("First upcoming interview"))
+                .andExpect(jsonPath("$[1].notes")
+                        .value("Second upcoming interview"));
+    }
+
+    @Test
+    void getUpcomingInterviews_shouldOnlyReturnCurrentUsersInterviews()
+            throws Exception {
+
+        JobApplication application = new JobApplication();
+        application.setCompanyName("Google");
+        application.setJobTitle("Java Developer");
+        application.setLocation("New York");
+        application.setUser(testUser);
+
+        JobApplication savedApplication =
+                repository.save(application);
+
+        Interview userInterview = Interview.builder()
+                .jobApplication(savedApplication)
+                .type(InterviewType.TECHNICAL)
+                .scheduledAt(LocalDateTime.now().plusDays(1))
+                .notes("Paul upcoming interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        interviewRepository.save(userInterview);
+
+        User otherUser = new User();
+        otherUser.setUsername("alice");
+        otherUser.setPassword("password");
+
+        otherUser = userRepository.save(otherUser);
+
+        JobApplication otherApplication = new JobApplication();
+        otherApplication.setCompanyName("Amazon");
+        otherApplication.setJobTitle("Backend Developer");
+        otherApplication.setLocation("Seattle");
+        otherApplication.setUser(otherUser);
+
+        JobApplication savedOtherApplication =
+                repository.save(otherApplication);
+
+        Interview otherInterview = Interview.builder()
+                .jobApplication(savedOtherApplication)
+                .type(InterviewType.FINAL)
+                .scheduledAt(LocalDateTime.now().plusDays(1))
+                .notes("Alice upcoming interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        interviewRepository.save(otherInterview);
+
+        mockMvc.perform(
+                        get("/applications/interviews/upcoming")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].notes")
+                        .value("Paul upcoming interview"));
+    }
+
+    @Test
+    void getUpcomingInterviews_shouldReturnEmptyListWhenNoneExist()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/applications/interviews/upcoming")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
 }

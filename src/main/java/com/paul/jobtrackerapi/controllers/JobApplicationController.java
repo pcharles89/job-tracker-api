@@ -203,4 +203,13 @@ public class JobApplicationController {
 
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "Get upcoming interviews")
+    @GetMapping("/interviews/upcoming")
+    public ResponseEntity<List<InterviewResponse>> getUpcomingInterviews() {
+        List<InterviewResponse> response =
+                service.getUpcomingInterviews();
+
+        return ResponseEntity.ok(response);
+    }
 }

@@ -507,4 +507,30 @@ public class JobApplicationService {
                 )
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<InterviewResponse> getUpcomingInterviews() {
+        User currentUser = getCurrentUser();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        return interviewRepository
+                .findByJobApplicationUserIdAndScheduledAtAfterOrderByScheduledAtAsc(
+                        currentUser.getId(),
+                        now
+                )
+                .stream()
+                .map(interview ->
+                        new InterviewResponse(
+                                interview.getId(),
+                                interview.getType(),
+                                interview.getScheduledAt(),
+                                interview.getNotes(),
+                                interview.getOutcome()
+                        )
+                )
+                .toList();
+    }
+
+
 }

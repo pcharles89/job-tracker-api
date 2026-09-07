@@ -891,4 +891,73 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .getInterviewOutcomeAnalytics();
     }
 
+    @Test
+    void getUpcomingInterviews_shouldReturnUpcomingInterviews() throws Exception {
+        LocalDateTime firstTime =
+                LocalDateTime.of(2026, 9, 5, 10, 0);
+
+        LocalDateTime secondTime =
+                LocalDateTime.of(2026, 9, 10, 14, 0);
+
+        InterviewResponse firstResponse =
+                new InterviewResponse(
+                        10L,
+                        InterviewType.TECHNICAL,
+                        firstTime,
+                        "Technical interview",
+                        InterviewOutcome.PENDING
+                );
+
+        InterviewResponse secondResponse =
+                new InterviewResponse(
+                        11L,
+                        InterviewType.FINAL,
+                        secondTime,
+                        "Final interview",
+                        InterviewOutcome.PENDING
+                );
+
+        Mockito.when(service.getUpcomingInterviews())
+                .thenReturn(List.of(
+                        firstResponse,
+                        secondResponse
+                ));
+
+        mockMvc.perform(
+                        get("/applications/interviews/upcoming")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+
+                .andExpect(jsonPath("$[0].id").value(10L))
+                .andExpect(jsonPath("$[0].type").value("TECHNICAL"))
+                .andExpect(jsonPath("$[0].notes").value("Technical interview"))
+                .andExpect(jsonPath("$[0].outcome").value("PENDING"))
+
+                .andExpect(jsonPath("$[1].id").value(11L))
+                .andExpect(jsonPath("$[1].type").value("FINAL"))
+                .andExpect(jsonPath("$[1].notes").value("Final interview"))
+                .andExpect(jsonPath("$[1].outcome").value("PENDING"));
+
+        Mockito.verify(service)
+                .getUpcomingInterviews();
+    }
+
+    @Test
+    void getUpcomingInterviews_shouldReturnEmptyList() throws Exception {
+
+        Mockito.when(service.getUpcomingInterviews())
+                .thenReturn(List.of());
+
+        mockMvc.perform(
+                        get("/applications/interviews/upcoming")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        Mockito.verify(service)
+                .getUpcomingInterviews();
+    }
+
+
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface InterviewRepository extends JpaRepository<Interview, Long> {
@@ -21,5 +22,10 @@ public interface InterviewRepository extends JpaRepository<Interview, Long> {
 """)
     List<InterviewOutcomeCountProjection> countByOutcomeForUser(
             @Param("userId") Long userId
+    );
+
+    List<Interview> findByJobApplicationUserIdAndScheduledAtAfterOrderByScheduledAtAsc(
+            Long userId,
+            LocalDateTime now
     );
 }
