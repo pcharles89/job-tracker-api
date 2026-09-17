@@ -1,6 +1,7 @@
 package com.paul.jobtrackerapi.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,11 +13,16 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    private final String secret;
+    private final long expiration;
 
-    @Value("${jwt.expiration}")
-    private long expiration;
+    public JwtService(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration}") long expiration
+    ) {
+        this.secret = secret;
+        this.expiration = expiration;
+    }
 
     public String generateToken(String username) {
         Date now = new Date();
@@ -36,10 +42,15 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, String username) {
-        String extractedUsername = extractUsername(token);
+        try {
+            String extractedUsername = extractUsername(token);
 
-        return extractedUsername.equals(username)
-                && !isTokenExpired(token);
+            return extractedUsername.equals(username)
+                    && !isTokenExpired(token);
+
+        } catch (JwtException ex) {
+            return false;
+        }
     }
 
     private boolean isTokenExpired(String token) {
