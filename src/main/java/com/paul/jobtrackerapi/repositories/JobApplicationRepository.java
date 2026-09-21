@@ -1,5 +1,6 @@
 package com.paul.jobtrackerapi.repositories;
 
+import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.entities.JobApplication;
 import com.paul.jobtrackerapi.entities.User;
 import com.paul.jobtrackerapi.projections.CompanyCountProjection;
@@ -56,4 +57,16 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
         """)
     List<LocationCountProjection> countApplicationsByLocation(Long userId);
 
+    @Query("""
+        SELECT COUNT(j)
+        FROM JobApplication j
+        WHERE j.user.id = :userId
+        AND j.status = :status
+        """)
+    long countByUserIdAndStatus(
+            @Param("userId") Long userId,
+            @Param("status") ApplicationStatus status
+    );
+
+    long countByUserId(Long userId);
 }

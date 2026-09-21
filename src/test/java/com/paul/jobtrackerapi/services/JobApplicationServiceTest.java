@@ -1,6 +1,12 @@
 package com.paul.jobtrackerapi.services;
 
-import com.paul.jobtrackerapi.dtos.*;
+import com.paul.jobtrackerapi.dtos.analytics.ApplicationSummaryResponse;
+import com.paul.jobtrackerapi.dtos.analytics.InterviewOutcomeAnalyticsResponse;
+import com.paul.jobtrackerapi.dtos.applications.*;
+import com.paul.jobtrackerapi.dtos.interviews.CreateInterviewRequest;
+import com.paul.jobtrackerapi.dtos.interviews.InterviewResponse;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewOutcomeRequest;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewRequest;
 import com.paul.jobtrackerapi.entities.*;
 import com.paul.jobtrackerapi.exceptions.InterviewNotFoundException;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
@@ -12,16 +18,17 @@ import com.paul.jobtrackerapi.repositories.JobApplicationRepository;
 import com.paul.jobtrackerapi.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -1311,5 +1318,55 @@ class JobApplicationServiceTest {
                 service.getUpcomingInterviews();
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getApplicationSummary_shouldReturnSummary() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("paul");
+
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(
+                        "paul",
+                        null,
+                        Collections.emptyList()
+                );
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(authentication);
+
+        Mockito.when(userRepository.findByUsername("paul"))
+                .thenReturn(Optional.of(user));
+
+        Mockito.when(repository.countByUserId(1L))
+                .thenReturn(10L);
+
+        Mockito.when(
+                interviewRepository.countByJobApplicationUserId(1L)
+        ).thenReturn(4L);
+
+        Mockito.when(
+                repository.countByUserIdAndStatus(
+                        1L,
+                        ApplicationStatus.OFFER
+                )
+        ).thenReturn(1L);
+
+        Mockito.when(
+                repository.countByUserIdAndStatus(
+                        1L,
+                        ApplicationStatus.REJECTED
+                )
+        ).thenReturn(3L);
+
+        ApplicationSummaryResponse result =
+                service.getApplicationSummary();
+
+        assertEquals(10L, result.totalApplications());
+        assertEquals(4L, result.interviews());
+        assertEquals(1L, result.offers());
+        assertEquals(3L, result.rejections());
     }
 }

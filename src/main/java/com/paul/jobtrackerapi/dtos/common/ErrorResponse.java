@@ -1,4 +1,4 @@
-package com.paul.jobtrackerapi.dtos;
+package com.paul.jobtrackerapi.dtos.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

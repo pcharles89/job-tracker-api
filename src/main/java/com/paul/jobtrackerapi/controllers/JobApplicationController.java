@@ -1,6 +1,11 @@
 package com.paul.jobtrackerapi.controllers;
 
-import com.paul.jobtrackerapi.dtos.*;
+import com.paul.jobtrackerapi.dtos.analytics.*;
+import com.paul.jobtrackerapi.dtos.applications.*;
+import com.paul.jobtrackerapi.dtos.interviews.CreateInterviewRequest;
+import com.paul.jobtrackerapi.dtos.interviews.InterviewResponse;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewOutcomeRequest;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewRequest;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.services.JobApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -211,5 +216,10 @@ public class JobApplicationController {
                 service.getUpcomingInterviews();
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/analytics/summary")
+    public ApplicationSummaryResponse getApplicationSummary() {
+        return service.getApplicationSummary();
     }
 }

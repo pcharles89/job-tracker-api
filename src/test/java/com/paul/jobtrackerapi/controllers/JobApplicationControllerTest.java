@@ -2,7 +2,15 @@ package com.paul.jobtrackerapi.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.paul.jobtrackerapi.dtos.*;
+import com.paul.jobtrackerapi.dtos.analytics.*;
+import com.paul.jobtrackerapi.dtos.applications.CreateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.applications.JobApplicationResponse;
+import com.paul.jobtrackerapi.dtos.applications.PatchJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.applications.UpdateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.interviews.CreateInterviewRequest;
+import com.paul.jobtrackerapi.dtos.interviews.InterviewResponse;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewOutcomeRequest;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewRequest;
 import com.paul.jobtrackerapi.entities.ApplicationStatus;
 import com.paul.jobtrackerapi.entities.InterviewOutcome;
 import com.paul.jobtrackerapi.entities.InterviewType;
@@ -26,6 +34,8 @@ import org.springframework.http.MediaType;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -77,7 +87,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
             .andExpect(jsonPath("$.companyName").value("Amazon"))
             .andExpect(jsonPath("$.jobTitle").value("Backend Developer"));
 
-    Mockito.verify(service)
+    verify(service)
             .createApplication(Mockito.any(CreateJobApplicationRequest.class));
 }
 
@@ -97,7 +107,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.companyName").value("Amazon"))
                 .andExpect(jsonPath("$.jobTitle").value("Backend Developer"));
 
-        Mockito.verify(service).getApplicationById(1L);
+        verify(service).getApplicationById(1L);
     }
 
     @Test
@@ -108,7 +118,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
         mockMvc.perform(get("/applications/1"))
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service).getApplicationById(1L);
+        verify(service).getApplicationById(1L);
     }
 
     @Test
@@ -136,7 +146,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.companyName").value("Google"))
                 .andExpect(jsonPath("$.jobTitle").value("Java Developer"));
 
-        Mockito.verify(service).updateApplication(
+        verify(service).updateApplication(
                 Mockito.eq(1L),
                 Mockito.any(UpdateJobApplicationRequest.class)
         );
@@ -174,7 +184,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.companyName").value("Netflix"))
                 .andExpect(jsonPath("$.jobTitle").value("Backend Developer"));
 
-        Mockito.verify(service).patchApplication(
+        verify(service).patchApplication(
                 Mockito.eq(1L),
                 Mockito.any(PatchJobApplicationRequest.class)
         );
@@ -185,7 +195,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
         mockMvc.perform(delete("/applications/1"))
                 .andExpect(status().isNoContent());
 
-        Mockito.verify(service).deleteApplication(1L);
+        verify(service).deleteApplication(1L);
     }
 
     @Test
@@ -261,7 +271,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.content[0].companyName").value("Amazon"))
                 .andExpect(jsonPath("$.content[0].jobTitle").value("Backend Developer"));
 
-        Mockito.verify(service).getAllApplications(Mockito.any(Pageable.class));
+        verify(service).getAllApplications(Mockito.any(Pageable.class));
     }
 
     @Test
@@ -292,7 +302,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.rejected").value(2))
                 .andExpect(jsonPath("$.withdrawn").value(0));
 
-        Mockito.verify(service).getAnalytics();
+        verify(service).getAnalytics();
     }
 
     @Test
@@ -321,7 +331,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.content[0].companyName").value("Amazon"))
                 .andExpect(jsonPath("$.content[0].jobTitle").value("Backend Developer"));
 
-        Mockito.verify(service).searchApplications(
+        verify(service).searchApplications(
                 Mockito.eq("Amazon"),
                 Mockito.eq("Remote"),
                 Mockito.eq(ApplicationStatus.APPLIED),
@@ -361,7 +371,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$[2].companyName").value("Microsoft"))
                 .andExpect(jsonPath("$[2].count").value(1));
 
-        Mockito.verify(service).getCompanyAnalytics();
+        verify(service).getCompanyAnalytics();
     }
 
     @Test
@@ -389,7 +399,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$[1].location").value("Remote"))
                 .andExpect(jsonPath("$[1].count").value(2));
 
-        Mockito.verify(service).getLocationAnalytics();
+        verify(service).getLocationAnalytics();
     }
 
     @Test
@@ -431,7 +441,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.notes").value("Java and SQL interview"))
                 .andExpect(jsonPath("$.outcome").value("PENDING"));
 
-        Mockito.verify(service).createInterview(
+        verify(service).createInterview(
                 Mockito.eq(applicationId),
                 Mockito.any(CreateInterviewRequest.class)
         );
@@ -511,7 +521,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$[1].notes").value("Java and SQL interview"))
                 .andExpect(jsonPath("$[1].outcome").value("PENDING"));
 
-        Mockito.verify(service).getInterviews(applicationId);
+        verify(service).getInterviews(applicationId);
     }
 
     @Test
@@ -526,7 +536,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service).getInterviews(applicationId);
+        verify(service).getInterviews(applicationId);
     }
 
     @Test
@@ -569,7 +579,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$.notes").value("Java and SQL interview"))
                 .andExpect(jsonPath("$.outcome").value("PASSED"));
 
-        Mockito.verify(service).updateInterviewOutcome(
+        verify(service).updateInterviewOutcome(
                 Mockito.eq(applicationId),
                 Mockito.eq(interviewId),
                 Mockito.any(UpdateInterviewOutcomeRequest.class)
@@ -603,7 +613,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service).updateInterviewOutcome(
+        verify(service).updateInterviewOutcome(
                 Mockito.eq(applicationId),
                 Mockito.eq(interviewId),
                 Mockito.eq(request)
@@ -637,7 +647,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service).updateInterviewOutcome(
+        verify(service).updateInterviewOutcome(
                 Mockito.eq(applicationId),
                 Mockito.eq(interviewId),
                 Mockito.eq(request)
@@ -689,7 +699,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                         .value("Final round with engineering manager"))
                 .andExpect(jsonPath("$.outcome").value("PENDING"));
 
-        Mockito.verify(service).updateInterview(
+        verify(service).updateInterview(
                 Mockito.eq(applicationId),
                 Mockito.eq(interviewId),
                 Mockito.eq(request)
@@ -725,7 +735,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service).updateInterview(
+        verify(service).updateInterview(
                 Mockito.eq(applicationId),
                 Mockito.eq(interviewId),
                 Mockito.eq(request)
@@ -761,7 +771,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service).updateInterview(
+        verify(service).updateInterview(
                 Mockito.eq(applicationId),
                 Mockito.eq(interviewId),
                 Mockito.eq(request)
@@ -782,7 +792,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNoContent());
 
-        Mockito.verify(service)
+        verify(service)
                 .deleteInterview(applicationId, interviewId);
     }
 
@@ -809,7 +819,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service)
+        verify(service)
                 .deleteInterview(applicationId, interviewId);
     }
 
@@ -836,7 +846,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 )
                 .andExpect(status().isNotFound());
 
-        Mockito.verify(service)
+        verify(service)
                 .deleteInterview(applicationId, interviewId);
     }
 
@@ -871,7 +881,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$[1].outcome").value("PASSED"))
                 .andExpect(jsonPath("$[1].count").value(5));
 
-        Mockito.verify(service)
+        verify(service)
                 .getInterviewOutcomeAnalytics();
     }
 
@@ -887,7 +897,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        Mockito.verify(service)
+        verify(service)
                 .getInterviewOutcomeAnalytics();
     }
 
@@ -939,7 +949,7 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(jsonPath("$[1].notes").value("Final interview"))
                 .andExpect(jsonPath("$[1].outcome").value("PENDING"));
 
-        Mockito.verify(service)
+        verify(service)
                 .getUpcomingInterviews();
     }
 
@@ -955,8 +965,35 @@ void createApplication_shouldReturnCreatedApplication() throws Exception {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        Mockito.verify(service)
+        verify(service)
                 .getUpcomingInterviews();
+    }
+
+    @Test
+    void getApplicationSummary_shouldReturnSummary() throws Exception {
+
+        ApplicationSummaryResponse response =
+                new ApplicationSummaryResponse(
+                        10,
+                        4,
+                        1,
+                        3
+                );
+
+        Mockito.when(service.getApplicationSummary())
+                .thenReturn(response);
+
+        mockMvc.perform(
+                        get("/applications/analytics/summary")
+                                .with(user("paul"))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalApplications").value(10))
+                .andExpect(jsonPath("$.interviews").value(4))
+                .andExpect(jsonPath("$.offers").value(1))
+                .andExpect(jsonPath("$.rejections").value(3));
+
+        verify(service).getApplicationSummary();
     }
 
 

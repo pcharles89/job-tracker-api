@@ -1,6 +1,11 @@
 package com.paul.jobtrackerapi.services;
 
-import com.paul.jobtrackerapi.dtos.*;
+import com.paul.jobtrackerapi.dtos.analytics.*;
+import com.paul.jobtrackerapi.dtos.applications.*;
+import com.paul.jobtrackerapi.dtos.interviews.CreateInterviewRequest;
+import com.paul.jobtrackerapi.dtos.interviews.InterviewResponse;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewOutcomeRequest;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewRequest;
 import com.paul.jobtrackerapi.entities.*;
 import com.paul.jobtrackerapi.exceptions.InterviewNotFoundException;
 import com.paul.jobtrackerapi.exceptions.JobApplicationNotFoundException;
@@ -532,5 +537,33 @@ public class JobApplicationService {
                 .toList();
     }
 
+    public ApplicationSummaryResponse getApplicationSummary() {
+        User currentUser = getCurrentUser();
 
+        long totalApplications =
+                repository.countByUserId(currentUser.getId());
+
+        long offers =
+                repository.countByUserIdAndStatus(
+                        currentUser.getId(),
+                        ApplicationStatus.OFFER
+                );
+
+        long interviews =
+                interviewRepository.countByJobApplicationUserId(currentUser.getId());
+
+        long rejections =
+                repository.countByUserIdAndStatus(
+                        currentUser.getId(),
+                        ApplicationStatus.REJECTED
+                );
+
+
+        return new ApplicationSummaryResponse(
+                totalApplications,
+                interviews,
+                offers,
+                rejections
+        );
+    }
 }

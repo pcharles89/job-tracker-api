@@ -28,4 +28,6 @@ public interface InterviewRepository extends JpaRepository<Interview, Long> {
             Long userId,
             LocalDateTime now
     );
+
+    long countByJobApplicationUserId(Long userId);
 }

@@ -1,6 +1,6 @@
 package com.paul.jobtrackerapi.exceptions;
 
-import com.paul.jobtrackerapi.dtos.ErrorResponse;
+import com.paul.jobtrackerapi.dtos.common.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

@@ -2,7 +2,12 @@ package com.paul.jobtrackerapi.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.paul.jobtrackerapi.dtos.*;
+import com.paul.jobtrackerapi.dtos.applications.CreateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.applications.PatchJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.applications.UpdateJobApplicationRequest;
+import com.paul.jobtrackerapi.dtos.interviews.CreateInterviewRequest;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewOutcomeRequest;
+import com.paul.jobtrackerapi.dtos.interviews.UpdateInterviewRequest;
 import com.paul.jobtrackerapi.entities.*;
 import com.paul.jobtrackerapi.repositories.ApplicationStatusHistoryRepository;
 import com.paul.jobtrackerapi.repositories.InterviewRepository;
@@ -1925,6 +1930,67 @@ public class JobApplicationIntegrationTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void getApplicationSummary_shouldReturnCorrectCounts()
+            throws Exception {
+
+        JobApplication offerApplication = new JobApplication();
+        offerApplication.setCompanyName("Google");
+        offerApplication.setJobTitle("Java Developer");
+        offerApplication.setLocation("New York");
+        offerApplication.setStatus(ApplicationStatus.OFFER);
+        offerApplication.setUser(testUser);
+
+        JobApplication savedOfferApplication =
+                repository.save(offerApplication);
+
+        JobApplication rejectedApplication = new JobApplication();
+        rejectedApplication.setCompanyName("Amazon");
+        rejectedApplication.setJobTitle("Backend Developer");
+        rejectedApplication.setLocation("Seattle");
+        rejectedApplication.setStatus(ApplicationStatus.REJECTED);
+        rejectedApplication.setUser(testUser);
+
+        repository.save(rejectedApplication);
+
+        JobApplication appliedApplication = new JobApplication();
+        appliedApplication.setCompanyName("Microsoft");
+        appliedApplication.setJobTitle("Software Engineer");
+        appliedApplication.setLocation("Remote");
+        appliedApplication.setStatus(ApplicationStatus.APPLIED);
+        appliedApplication.setUser(testUser);
+
+        repository.save(appliedApplication);
+
+        Interview firstInterview = Interview.builder()
+                .jobApplication(savedOfferApplication)
+                .type(InterviewType.TECHNICAL)
+                .scheduledAt(LocalDateTime.now().plusDays(1))
+                .notes("Technical interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        Interview secondInterview = Interview.builder()
+                .jobApplication(savedOfferApplication)
+                .type(InterviewType.FINAL)
+                .scheduledAt(LocalDateTime.now().plusDays(2))
+                .notes("Final interview")
+                .outcome(InterviewOutcome.PENDING)
+                .build();
+
+        interviewRepository.save(firstInterview);
+        interviewRepository.save(secondInterview);
+
+        mockMvc.perform(
+                        get("/applications/analytics/summary")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalApplications").value(3))
+                .andExpect(jsonPath("$.interviews").value(2))
+                .andExpect(jsonPath("$.offers").value(1))
+                .andExpect(jsonPath("$.rejections").value(1));
     }
 
 }

@@ -1,4 +1,4 @@
-package com.paul.jobtrackerapi.dtos;
+package com.paul.jobtrackerapi.dtos.analytics;
 
 import com.paul.jobtrackerapi.entities.InterviewOutcome;
 

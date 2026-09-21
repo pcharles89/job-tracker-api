@@ -1,4 +1,4 @@
-package com.paul.jobtrackerapi.dtos;
+package com.paul.jobtrackerapi.dtos.analytics;
 
 import lombok.*;
 
@@ -8,7 +8,6 @@ import lombok.*;
 public class AnalyticsResponse {
 
     private final long totalApplications;
-
     private final long applied;
     private final long phoneScreen;
     private final long technicalInterview;
